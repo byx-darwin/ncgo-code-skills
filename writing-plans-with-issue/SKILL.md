@@ -219,8 +219,16 @@ gh issue view "$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo 'alr
 
 ```
 ✅ 计划已生成: docs/superpowers/plans/YYYY-MM-DD-feature-name.md
+✅ Issue #N 已创建
 
-现在可以开始开发了（推荐在新窗口/工作树中执行）：
+下一步执行（二选一）：
+
+方式 1 — Agent Teams 并行模式（推荐，~2x 加速）:
+  1. 打开新终端窗口
+  2. CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude
+  3. /subagent-driven-development docs/superpowers/plans/YYYY-MM-DD-feature-name.md
+
+方式 2 — 单 Agent 模式（当前窗口）:
   /subagent-driven-development docs/superpowers/plans/YYYY-MM-DD-feature-name.md
 ```
 

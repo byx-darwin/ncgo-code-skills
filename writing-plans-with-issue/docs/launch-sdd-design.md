@@ -1,154 +1,90 @@
-# launch-sdd.sh 自动启动 SDD 执行方案
+# SDD-Pipeline — Claude Code Agent Teams 原生方案
 
 **日期:** 2026-06-26
-**状态:** 方案讨论 — 待决策
+**状态:** 方案已定向 — 采用 Claude Code 原生 Agent Teams
 
-## 背景
+## 决策
 
-`writing-plans-with-issue` skill 生成计划文件后，当前需要用户手动执行：
+放弃独立 `launch-sdd.sh` 脚本方案，改为接入 **Claude Code 原生 Agent Teams**（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`）。
 
-```
-/subagent-driven-development docs/superpowers/plans/xxx.md
-```
+理由：
+- Agent Teams 已内置：任务拆分、子 Agent 派发、git worktree 隔离、消息通信、任务状态追踪
+- 不需要自己造调度器、并发控制、文件隔离
+- SDD 的「拆任务→派发→审查→修复→提交」流水线正是 Agent Teams 的标准场景
 
-这一步是人工操作，理想流程是「计划生成 → 自动打开新窗口 → SDD 自动执行」。
-
-## 方案对比
-
-| 方案 | 原理 | 优点 | 缺点 |
-|------|------|------|------|
-| **A. SKILL.md 末尾打印命令** | plan 生成后输出可复制的 shell 命令 | 零侵入，完全用户可控 | 需手动复制粘贴，易遗忘 |
-| **B. launch-sdd.sh 脚本** | 独立脚本检测终端类型，新窗口执行 | 封装好，跨终端，可复用 | 平台相关（macOS/Linux/Windows 各不同） |
-| **C. Claude Code hooks** | settings.json 监听 Skill 事件自动触发 | 全自动，无感 | `claude` 自调用风险高，调试困难，死循环风险 |
-
-### 推荐: 方案 B — `scripts/launch-sdd.sh`
-
-## 详细设计
-
-### 文件结构
+## 目标流程
 
 ```
-writing-plans-with-issue/scripts/
-├── _common.sh
-├── create-issue.sh
-├── sync-status.sh
-├── link-pr.sh
-├── finish-issue.sh
-├── launch-sdd.sh          ← 新增
-└── sdd-agent-config.sh    ← 可选：配置文件
+用户: "我要实现 XXX 功能"
+  │
+  ▼
+writing-plans-with-issue (当前 session)
+  ├─ 生成计划文件 docs/superpowers/plans/xxx.md
+  ├─ 执行 Task 1: create-issue.sh → Issue #N
+  └─ 输出下一步指令
+  │
+  ▼
+用户复制指令，开新 Claude Code + Agent Teams session:
+  $ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude
+  > /subagent-driven-development docs/superpowers/plans/xxx.md
+  │
+  ▼
+SDD Controller (Team Lead)
+  ├─ Task 3  → Teammate A (sonnet)  → Review → fix → ✅
+  ├─ Task 4  → Teammate B (sonnet)  → Review → fix → ✅
+  ├─ Task 5  → Teammate C (haiku)   → Review → ✅
+  ├─ ...
+  └─ Task 11 → 最终审查 (opus) → fix → finish-issue.sh → ✅
 ```
 
-### launch-sdd.sh 核心逻辑
+## SKILL.md 改造点
 
-```bash
-#!/bin/bash
-# 用法: launch-sdd.sh <plan-file> [ai-tool]
-
-# 参数
-PLAN_FILE="${1:-}"
-AI_TOOL="${2:-claude}"
-
-# 1. 检测终端类型
-detect_terminal() {
-  case "$(uname -s)" in
-    Darwin)
-      # 优先 iTerm2，其次 Terminal.app
-      if osascript -e 'id of app "iTerm"' &>/dev/null; then echo "iterm2"
-      else echo "terminal"
-      fi
-      ;;
-    Linux)
-      if command -v gnome-terminal &>/dev/null; then echo "gnome"
-      elif command -v konsole &>/dev/null; then echo "konsole"
-      elif command -v xterm &>/dev/null; then echo "xterm"
-      else echo "unknown"
-      fi
-      ;;
-    *)
-      echo "unknown"
-      ;;
-  esac
-}
-
-# 2. 构建启动命令
-build_command() {
-  case "$AI_TOOL" in
-    claude)
-      echo "claude --dangerously-skip-permissions -p '/subagent-driven-development $PLAN_FILE'"
-      ;;
-    codex)
-      echo "codex exec /subagent-driven-development $PLAN_FILE"
-      ;;
-    *)
-      echo "$AI_TOOL /subagent-driven-development $PLAN_FILE"
-      ;;
-  esac
-}
-
-# 3. 新窗口启动
-LAUNCH_CMD=$(build_command)
-TERM=$(detect_terminal)
-WORKDIR=$(pwd)
-
-case "$TERM" in
-  iterm2)
-    osascript -e "tell app \"iTerm\"
-      tell current window
-        create tab with default profile
-        tell current session
-          write text \"cd $WORKDIR && clear && $LAUNCH_CMD\"
-        end tell
-      end tell
-    end tell"
-    ;;
-  terminal)
-    osascript -e "tell app \"Terminal\"
-      do script \"cd $WORKDIR && clear && $LAUNCH_CMD\"
-      activate
-    end tell"
-    ;;
-  gnome)
-    gnome-terminal -- bash -c "cd $WORKDIR && $LAUNCH_CMD; exec bash"
-    ;;
-  *)
-    echo "Unsupported terminal. Run manually: $LAUNCH_CMD"
-    ;;
-esac
-```
-
-### SKILL.md 交互改造
+当前末尾输出：
 
 ```
 ✅ 计划已生成: docs/superpowers/plans/xxx.md
 
-执行方式:
-1. 自动打开新窗口执行 SDD → bash [base-dir]/scripts/launch-sdd.sh <plan-file>
-2. 手动在当前窗口执行       → /subagent-driven-development <plan-file>
-3. 稍后处理
-
-按数字选择:
+现在可以开始开发了:
+  /subagent-driven-development docs/superpowers/plans/xxx.md
 ```
 
-## 待决策项
+改为：
 
-| # | 议题 | 待定 |
+```
+✅ 计划已生成: docs/superpowers/plans/xxx.md
+✅ Issue #N 已创建
+
+下一步 — 新窗口执行（Agent Teams 模式）:
+  1. 打开新终端窗口
+  2. 运行: CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude
+  3. 输入: /subagent-driven-development docs/superpowers/plans/xxx.md
+
+或者单 Agent 模式（当前窗口）:
+  /subagent-driven-development docs/superpowers/plans/xxx.md
+```
+
+## 改造项
+
+| # | 文件 | 改动 |
 |---|------|------|
-| 1 | `--dangerously-skip-permissions` 是 Claude Code 专属 flag，其他工具/平台无此概念。脚本中硬编码还是做成可配置？ | 参数化 |
-| 2 | 新窗口 vs 新 tab vs 后台进程 — 不同开发者有不同习惯 | 先支持新 tab，后续加配置 |
-| 3 | Windows 兼容 — `osascript` 仅 macOS，Linux 用 `gnome-terminal` | 待补充 Windows Terminal |
-| 4 | 如果计划文件还没执行 Task 1（未创建 Issue），是否先跑 create-issue.sh？ | 默认跳过，让 SDD 执行器自己跑 |
-| 5 | 是否需要独立的 "SDD Agent" 来接管整个流程（计划→执行→审查→关闭） | 远期考虑，先看脚本够不够用 |
+| 1 | `SKILL.md` | 末尾 Execution Handoff 部分改为双路径提示（Agent Teams / 单 Agent） |
+| 2 | `SKILL.md` | 新增一节说明 Agent Teams 并行加速效果 |
+| 3 | `plan-template.md` | 验证命令加入 Agent Teams 环境变量的检测提醒 |
+| 4 | 无需新增脚本 | `launch-sdd.sh` 废弃，不提交 |
 
-## 后续方向
+## Agent Teams 下的 SDD 加速估算
 
-如果 `launch-sdd.sh` 脚本方案验证可行，可以考虑抽离为独立的 Claude Code Agent：
+| 场景 | 串行时间 | Agent Teams 并行 | 加速比 |
+|------|---------|-----------------|--------|
+| Tasks 3-6（go-auth，4 个独立包） | ~3min | ~1min（4 agent 并行） | ~3x |
+| Tasks 7-8（go-middleware，依赖 Task 5-6） | ~4min | ~3min（先后派发） | ~1.3x |
+| Task 9（依赖 Task 3,5,7,8） | ~5min | ~5min（串行依赖） | 1x |
+| Task 10-11（最终验证） | ~3min | ~3min | 1x |
 
-```
-Agent: sdd-executor
-  - 输入: plan 文件路径
-  - 自动执行: Task 1 → Task 2 → ... → Task N → finish-issue.sh
-  - 不依赖新窗口，在后台 session 中完成全部流程
-  - 用户只需提供 plan 文件，一切自动完成
-```
+保守估计：通过并行执行独立任务，**SDD 总耗时从 ~15min 降到 ~8min**。
 
-这个 Agent 可以做成 `writing-plans-with-issue` 的配套 skill，专门处理「从 plan 到 merge 的全自动流水线」。
+## 备注
+
+- 本方案不增加新脚本或新 Agent，只改 SKILL.md 文档和 plan-template.md 提示语
+- Agent Teams 目前需要 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 环境变量，属实验性功能
+- 后续 Agent Teams 正式 GA 后可简化为一行命令
