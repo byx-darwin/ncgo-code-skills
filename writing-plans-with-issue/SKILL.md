@@ -55,7 +55,8 @@ grep -q '.claude/gh-issue/' .gitignore 2>/dev/null || echo '.claude/gh-issue/' >
 |------|------|---------|
 | `scripts/create-issue.sh` | 从计划文件解析 Issue 信息并创建 GitHub Issue | Task 1 |
 | `scripts/sync-status.sh` | 更新 GitHub Issue 的状态标签 | Task 2 / PR 阶段 |
-| `scripts/link-pr.sh` | 创建 Pull Request 并关联 Issue（Closes #N） | 开发完成后 |
+| `scripts/link-pr.sh` | 创建 Pull Request 并关联 Issue（Closes #N） | 开发完成后（PR 路径） |
+| `scripts/finish-issue.sh` | 本地合并后收尾：push + 关闭 Issue + 清理 state | 开发完成后（本地合并路径） |
 
 ---
 
@@ -163,6 +164,30 @@ echo "✅ Issue #$(cat .claude/gh-issue/current-issue.txt) 已标记为 in-progr
 
 ### Task 3: [开发任务 1]
 ### Task N: [后续开发任务]
+
+### Task N+1: 收尾 — 本地合并后关闭 Issue
+
+**Description:** 开发完成并本地合并到 base 分支后，push 并关闭 Issue。
+
+> **注意：** 如果选择 PR 路径（Option 2），则不需要此任务 — `link-pr.sh` 会在 PR body 中包含 `Closes #N`，PR 合并时 GitHub 自动关闭 Issue。
+
+- [ ] **Step 1: 确保已合并到 base 分支**
+
+```bash
+git branch --show-current  # 应该在 main/master 上
+```
+
+- [ ] **Step 2: 运行 scripts/finish-issue.sh**
+
+```bash
+bash [base-dir]/scripts/finish-issue.sh
+```
+
+- [ ] **Step 3: 确认 Issue 已关闭**
+
+```bash
+gh issue view "$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo 'already cleaned')"
+```
 ```
 
 > **生成计划时的路径替换：** 上述模板中的 `[base-dir]` 必须替换为本 skill 的 base directory（skill 调用时系统告知，如 `/Users/xxx/.claude/skills/writing-plans-with-issue`）。计划文件由 subagent 执行，需要绝对路径。
@@ -208,8 +233,12 @@ echo "✅ Issue #$(cat .claude/gh-issue/current-issue.txt) 已标记为 in-progr
    └─ superpowers:subagent-driven-development
       └─ 所有 commit message 引用 #N
 
-7. 完成开发 → 创建 PR
-   └─ superpowers:finishing-a-development-branch
+7. 完成开发 → 选择集成路径
+   ├─ Option 1: 本地合并
+   │  └─ finishing-a-development-branch (merge locally)
+   │     └─ finish-issue.sh → push base 分支 + 关闭 Issue #N + 清理 state ✅
+   │
+   └─ Option 2: 创建 PR
       └─ link-pr.sh → PR (Closes #N) + Issue status: in-review
          └─ PR 合并 → GitHub 自动关闭 Issue #N ✅
 ```
@@ -281,6 +310,11 @@ rm .claude/gh-issue/current-issue.txt
 
 ## Version History
 
+- v1.1.0 (2026-06-26) — 本地合并路径支持
+  - 新增 `finish-issue.sh`：本地合并后 push + 关闭 Issue + 清理 state
+  - 计划模板新增最终任务（收尾 — 本地合并后关闭 Issue）
+  - Workflow 图区分 Option 1（本地合并）和 Option 2（PR）两条路径
+  - 解决 `finishing-a-development-branch` 不感知 Issue 的问题
 - v1.0.0 (2026-06-26) — 初始版本
   - 计划结构：Standard Header + Issue 规划 + File Structure + Tasks
   - Task 1 = 创建 GitHub Issue，Task 2 = 同步状态为 in-progress
