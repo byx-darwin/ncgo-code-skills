@@ -200,6 +200,38 @@ gh issue view "$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo 'alr
 
 ---
 
+## Agent Teams 并行加速
+
+当使用 Agent Teams 模式执行计划时，独立任务可并行派发给多个 subagent，显著缩短总耗时。
+
+### 加速估算
+
+以下为典型 SDD 流水线的串行 vs 并行对比（基于 `launch-sdd-design.md` 中的实测数据）：
+
+| 场景 | 串行时间 | Agent Teams 并行 | 加速比 |
+|------|---------|-----------------|--------|
+| 独立包任务（4 个 agent 并行） | ~3min | ~1min | ~3x |
+| 有依赖的任务（先后派发） | ~4min | ~3min | ~1.3x |
+| 串行依赖任务 | ~5min | ~5min | 1x |
+| 最终验证 | ~3min | ~3min | 1x |
+
+保守估计：通过并行执行独立任务，**SDD 总耗时从 ~15min 降到 ~8min**。
+
+### 使用方式
+
+```bash
+# Agent Teams 模式（推荐）
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
+> /subagent-driven-development docs/superpowers/plans/xxx.md
+
+# 单 Agent 模式（兼容）
+> /subagent-driven-development docs/superpowers/plans/xxx.md
+```
+
+> **注意：** Agent Teams 目前需要 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` 环境变量，属实验性功能。后续正式 GA 后可简化为一行命令。
+
+---
+
 ## Workflow（完整闭环）
 
 ```

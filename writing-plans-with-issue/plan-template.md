@@ -208,6 +208,20 @@ bash [base-dir]/scripts/finish-issue.sh
 
 ## Validation
 
+### Agent Teams Readiness Check
+
+> 如果计划使用 Agent Teams 模式执行，运行此检测确认环境就绪。
+
+```bash
+# 检测 Agent Teams 环境变量是否已设置
+if [ -n "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]; then
+  echo "✅ Agent Teams 已启用 (CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=$CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)"
+else
+  echo "⚠️ Agent Teams 未启用 — 独立任务将串行执行"
+  echo "   启用方式: CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions"
+fi
+```
+
 ### Build Verification
 
 ```bash
