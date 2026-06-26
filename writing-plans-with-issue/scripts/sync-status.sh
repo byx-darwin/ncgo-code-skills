@@ -3,106 +3,29 @@
 # 更新 GitHub Issue 的状态标签
 # 兼容: Linux, macOS, Windows (Git Bash / WSL)
 
-set -e
+set -euo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/_common.sh"
 
-log_info() { echo -e "${GREEN}✅${NC} $1"; }
-log_warn() { echo -e "${YELLOW}⚠️${NC} $1"; }
-log_error() { echo -e "${RED}❌${NC} $1"; }
+# ── 参数解析 ──
 
-# ── 平台检测与安装指令 ──
-
-detect_os() {
-  case "$(uname -s)" in
-    Darwin)  echo "macOS" ;;
-    Linux)   echo "linux" ;;
-    MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
-    *)       echo "unknown" ;;
-  esac
-}
-
-gh_install_instructions() {
-  local os
-  os=$(detect_os)
-  echo "GitHub CLI (gh) is required but not installed."
-  echo ""
-  case "$os" in
-    macOS)
-      echo "  brew install gh"
-      ;;
-    linux)
-      echo "  Debian/Ubuntu: sudo apt install gh"
-      echo "  Fedora/RHEL:   sudo dnf install gh"
-      echo "  Arch:          sudo pacman -S github-cli"
-      ;;
-    windows)
-      echo "  winget install GitHub.cli"
-      echo "  或: choco install gh"
-      ;;
-    *)
-      echo "  下载: https://cli.github.com/"
-      ;;
-  esac
-  echo ""
-  echo "安装后运行: gh auth login"
-}
-
-check_dependencies() {
-  if ! command -v gh &> /dev/null; then
-    gh_install_instructions
-    exit 1
-  fi
-
-  if ! gh auth status &> /dev/null; then
-    log_error "GitHub CLI is not authenticated."
-    echo ""
-    echo "Run: gh auth login"
-    echo "  - 选择 GitHub.com"
-    echo "  - 选择 HTTPS"
-    echo "  - 使用浏览器登录或粘贴 token"
-    exit 1
-  fi
-}
-
-# 解析参数
 ISSUE_NUM="${1:-}"
 STATUS="${2:-}"
 
-# 如果只提供了一个参数，判断是 Issue 编号还是状态
 if [ -z "$STATUS" ]; then
   if [[ "$ISSUE_NUM" =~ ^(in-progress|in-review|done)$ ]]; then
-    # 传的是状态，从文件读 Issue 编号
     STATUS="$ISSUE_NUM"
-    if [ -f .claude/gh-issue/current-issue.txt ]; then
-      ISSUE_NUM=$(cat .claude/gh-issue/current-issue.txt)
-      log_info "Using current Issue: #$ISSUE_NUM"
-    else
-      log_error "No Issue number found. Provide issue number: sync-status.sh <number> <status>"
-      exit 1
-    fi
-  else
-    log_error "Usage: sync-status.sh [issue-number] <status>"
-    echo "  Status: in-progress, in-review, done"
-    exit 1
+    ISSUE_NUM=""
   fi
 fi
 
-# 如果没有 Issue 编号，从文件读取
-if [ -z "$ISSUE_NUM" ]; then
-  if [ -f .claude/gh-issue/current-issue.txt ]; then
-    ISSUE_NUM=$(cat .claude/gh-issue/current-issue.txt)
-    log_info "Using current Issue: #$ISSUE_NUM"
-  else
-    log_error "No Issue number found. Create one first with create-issue.sh"
-    exit 1
-  fi
+if [ -z "$STATUS" ]; then
+  log_error "Usage: sync-status.sh [issue-number] <status>"
+  echo "  Status: in-progress, in-review, done"
+  exit 1
 fi
 
-# 验证状态值
 case "$STATUS" in
   in-progress|in-review|done) ;;
   *)
@@ -112,38 +35,41 @@ case "$STATUS" in
     ;;
 esac
 
-main() {
-  log_info "Updating Issue #$ISSUE_NUM status to: $STATUS"
+# ── 读取 Issue 编号 ──
 
+if [ -z "$ISSUE_NUM" ]; then
+  ISSUE_NUM=$(read_issue_num)
+fi
+
+# ── 主流程 ──
+
+main() {
+  cd_to_git_root
   check_dependencies
 
-  # 确保目标状态标签存在
   TARGET_LABEL="status: $STATUS"
-  if ! gh label list --json name -q '.[].name' 2>/dev/null | grep -qxF "$TARGET_LABEL"; then
-    log_info "Creating label: $TARGET_LABEL"
-    gh label create "$TARGET_LABEL" 2>/dev/null || {
-      log_warn "Failed to create label '$TARGET_LABEL'"
-    }
-  fi
+  log_info "Updating Issue #$ISSUE_NUM status to: $STATUS"
 
-  # 移除所有旧状态标签
-  log_info "Removing existing status labels..."
-  gh issue edit "$ISSUE_NUM" \
-    --remove-label "status: plan" \
-    --remove-label "status: in-progress" \
-    --remove-label "status: in-review" \
-    --remove-label "status: done" \
-    2>/dev/null || log_warn "No existing status labels to remove"
+  # 确保目标状态标签存在
+  ensure_status_label "$TARGET_LABEL" || true
 
-  # 添加新状态标签
+  # 先加后删（原子性更好：即使后续失败，新状态标签已就位）
   log_info "Adding status label: $TARGET_LABEL"
-  if gh issue edit "$ISSUE_NUM" --add-label "$TARGET_LABEL" 2>&1; then
-    log_info "Issue #$ISSUE_NUM status updated to: $STATUS"
-  else
-    log_error "Failed to update Issue status."
-    echo "Run manually: gh issue edit $ISSUE_NUM --add-label 'status: $STATUS'"
+  gh issue edit "$ISSUE_NUM" --add-label "$TARGET_LABEL" || {
+    log_error "Failed to add status label."
+    echo "Run manually: gh issue edit $ISSUE_NUM --add-label '$TARGET_LABEL'"
     exit 1
-  fi
+  }
+
+  # 移除其他所有旧状态标签
+  log_info "Removing old status labels..."
+  for old in "status: plan" "status: in-progress" "status: in-review" "status: done"; do
+    if [ "$old" != "$TARGET_LABEL" ]; then
+      gh issue edit "$ISSUE_NUM" --remove-label "$old" 2>/dev/null || true
+    fi
+  done
+
+  log_info "Issue #$ISSUE_NUM status updated to: $STATUS"
 
   # done 时清理 current-issue.txt
   if [ "$STATUS" = "done" ]; then

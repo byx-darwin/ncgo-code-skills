@@ -3,79 +3,17 @@
 # 从计划文件解析 "GitHub Issue 规划" 部分并创建 GitHub Issue
 # 兼容: Linux, macOS, Windows (Git Bash / WSL)
 
-set -o pipefail
+set -euo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/_common.sh"
 
-log_info() { echo -e "${GREEN}✅${NC} $1"; }
-log_warn() { echo -e "${YELLOW}⚠️${NC} $1"; }
-log_error() { echo -e "${RED}❌${NC} $1"; }
+# ── 参数解析 ──
 
-# ── 平台检测与安装指令 ──
-
-detect_os() {
-  case "$(uname -s)" in
-    Darwin)  echo "macOS" ;;
-    Linux)   echo "linux" ;;
-    MINGW*|MSYS*|CYGWIN*) echo "windows" ;;
-    *)       echo "unknown" ;;
-  esac
-}
-
-gh_install_instructions() {
-  local os
-  os=$(detect_os)
-  echo "GitHub CLI (gh) is required but not installed."
-  echo ""
-  case "$os" in
-    macOS)
-      echo "  brew install gh"
-      ;;
-    linux)
-      echo "  Debian/Ubuntu: sudo apt install gh"
-      echo "  Fedora/RHEL:   sudo dnf install gh"
-      echo "  Arch:          sudo pacman -S github-cli"
-      echo "  或:            https://github.com/cli/cli/releases"
-      ;;
-    windows)
-      echo "  winget install GitHub.cli"
-      echo "  或: choco install gh"
-      echo "  或: https://cli.github.com/"
-      ;;
-    *)
-      echo "  下载: https://cli.github.com/"
-      ;;
-  esac
-  echo ""
-  echo "安装后运行: gh auth login"
-}
-
-# 检查依赖
-check_dependencies() {
-  if ! command -v gh &> /dev/null; then
-    gh_install_instructions
-    exit 1
-  fi
-
-  if ! gh auth status &> /dev/null; then
-    log_error "GitHub CLI is not authenticated."
-    echo ""
-    echo "Run: gh auth login"
-    echo "  - 选择 GitHub.com"
-    echo "  - 选择 HTTPS"
-    echo "  - 使用浏览器登录或粘贴 token"
-    exit 1
-  fi
-}
-
-# 解析参数
 PLAN_FILE="${1:-}"
 
 if [ -z "$PLAN_FILE" ]; then
-  PLAN_FILE=$(find docs/superpowers/plans -name "*.md" -type f 2>/dev/null | sort -r | head -1)
+  PLAN_FILE=$(find docs/superpowers/plans -name "*.md" -type f -maxdepth 1 2>/dev/null | sort -t- -k1,3 -r | head -1)
   if [ -z "$PLAN_FILE" ]; then
     log_error "No plan file found. Usage: create-issue.sh <plan-file>"
     exit 1
@@ -94,31 +32,27 @@ if ! grep -q "## GitHub Issue 规划" "$PLAN_FILE"; then
   exit 1
 fi
 
-# 提取 Issue 信息
+# ── 提取 Issue 信息 ──
+
 extract_issue_info() {
-  # 标题（同一行格式: **Issue 标题:** feat: xxx）
   ISSUE_TITLE=$(grep "^\*\*Issue 标题:\*\*" "$PLAN_FILE" | sed 's/^\*\*Issue 标题:\*\*[[:space:]]*//;s/^[* ]*//;s/[* ]*$//')
   if [ -z "$ISSUE_TITLE" ]; then
-    ISSUE_TITLE=$(grep -A 1 "^\*\*Issue 标题:\*\*" "$PLAN_FILE" | tail -1 | sed 's/^[* ]*//;s/[* ]*$//')
+    log_error "Failed to extract Issue title from plan file."
+    exit 1
   fi
 
-  # 标签
   ISSUE_LABELS=$(grep "^\*\*Issue 标签:\*\*" "$PLAN_FILE" | sed 's/^\*\*Issue 标签:\*\*[[:space:]]*//;s/^[* ]*//;s/[* ]*$//')
-  if [ -z "$ISSUE_LABELS" ]; then
-    ISSUE_LABELS=$(grep -A 1 "^\*\*Issue 标签:\*\*" "$PLAN_FILE" | tail -1 | sed 's/^[* ]*//;s/[* ]*$//')
-  fi
-  # 移除空格（gh CLI 要求逗号分隔无空格）
-  ISSUE_LABELS=$(echo "$ISSUE_LABELS" | tr -d ' ')
+  # 标准化标签格式（只移除逗号周围空格，保留标签内部空格）
+  ISSUE_LABELS=$(normalize_labels "$ISSUE_LABELS")
 
-  # 描述（从 **Issue 描述:** 到下一个 ** 或 ##）
   ISSUE_DESC=$(awk '/^\*\*Issue 描述:\*\*/{flag=1; next} /^\*\*|^##/{flag=0} flag' "$PLAN_FILE" | sed 's/^[[:space:]]*//')
 
-  # 验收标准
   ACCEPTANCE=$(awk '/^\*\*验收标准:\*\*/{flag=1; next} /^\*\*|^##/{flag=0} flag' "$PLAN_FILE")
 
-  # 里程碑（可选）
   MILESTONE=$(grep -A 1 "^\*\*里程碑:\*\*" "$PLAN_FILE" | tail -1 | sed 's/^[* ]*//;s/[* ]*$//' | grep -v "可选" || echo "")
 }
+
+# ── 构建 Issue body ──
 
 build_issue_body() {
   cat <<EOF
@@ -146,57 +80,35 @@ _Auto-created by writing-plans-with-issue_
 EOF
 }
 
-# 确保标签存在
-ensure_labels() {
-  IFS=',' read -ra LABEL_ARRAY <<< "$ISSUE_LABELS"
-  for label in "${LABEL_ARRAY[@]}"; do
-    label=$(echo "$label" | xargs)
-    if [ -z "$label" ]; then
-      continue
-    fi
-    if ! gh label list --json name -q '.[].name' 2>/dev/null | grep -qxF "$label"; then
-      log_info "Creating label: $label"
-      gh label create "$label" --color "ededed" 2>/dev/null || {
-        log_warn "Failed to create label '$label', will skip it"
-        continue
-      }
-    fi
-  done
-}
+# ── 注入 Issue 引用到计划文件 ──
 
-# 注入 Issue 引用到计划文件（跨平台兼容：用临时文件替代 sed -i）
 inject_issue_ref() {
   local issue_num="$1"
   local plan_file="$2"
   local tmpfile
   tmpfile=$(mktemp)
+  trap "rm -f '$tmpfile'" RETURN
   echo "<!-- Issue: #$issue_num -->" > "$tmpfile"
   cat "$plan_file" >> "$tmpfile"
-  mv "$tmpfile" "$plan_file"
+  cp "$tmpfile" "$plan_file"
 }
 
-# 主流程
+# ── 主流程 ──
+
 main() {
-  log_info "Creating GitHub Issue from plan file..."
-
+  cd_to_git_root
   check_dependencies
-  extract_issue_info
 
-  if [ -z "$ISSUE_TITLE" ]; then
-    log_error "Failed to extract Issue title from plan file."
-    exit 1
-  fi
+  log_info "Creating GitHub Issue from plan file..."
+  extract_issue_info
 
   log_info "Issue title: $ISSUE_TITLE"
   log_info "Issue labels: $ISSUE_LABELS"
 
   ISSUE_BODY=$(build_issue_body)
-  ensure_labels
 
-  log_info "Creating Issue on GitHub..."
-
-  # 检查是否已有关联的 Issue（防止重复创建）
-  EXISTING_ISSUE=$(grep -o '<!-- Issue: #[0-9]* -->' "$PLAN_FILE" 2>/dev/null | grep -o '[0-9]*')
+  # 防止重复创建
+  EXISTING_ISSUE=$(grep -o '<!-- Issue: #[0-9]* -->' "$PLAN_FILE" 2>/dev/null | grep -o '[0-9]*' || echo "")
   if [ -n "$EXISTING_ISSUE" ]; then
     log_warn "计划文件已关联 Issue #$EXISTING_ISSUE"
     echo "  如需创建新 Issue，请先删除计划文件中的 '<!-- Issue: #$EXISTING_ISSUE -->'"
@@ -204,32 +116,49 @@ main() {
     exit 1
   fi
 
-  # 使用临时文件存储正文（避免 shell 转义问题）
-  TEMP_FILE=$(mktemp)
-  trap 'rm -f "$TEMP_FILE"' EXIT
-  echo "$ISSUE_BODY" > "$TEMP_FILE"
+  # 确保用户标签存在
+  IFS=',' read -ra LABEL_ARRAY <<< "$ISSUE_LABELS"
+  for label in "${LABEL_ARRAY[@]}"; do
+    label=$(echo "$label" | xargs)
+    [ -z "$label" ] && continue
+    ensure_status_label "$label" || true
+  done
 
-  # 构建 gh issue create 命令（用数组避免 MILESTONE 参数拆分问题）
-  CREATE_ARGS=(--title "$ISSUE_TITLE" --body-file "$TEMP_FILE" --label "$ISSUE_LABELS")
+  # 确保 status: plan 标签存在
+  ensure_status_label "status: plan" || true
+
+  log_info "Creating Issue on GitHub..."
+
+  # 用临时文件存储 body（避免 shell 转义问题）
+  TEMP_BODY=$(mktemp)
+  trap 'rm -f "$TEMP_BODY"' EXIT
+  echo "$ISSUE_BODY" > "$TEMP_BODY"
+
+  # 构建创建参数
+  CREATE_ARGS=(--title "$ISSUE_TITLE" --body-file "$TEMP_BODY")
+  if [ -n "$ISSUE_LABELS" ]; then
+    CREATE_ARGS+=(--label "$ISSUE_LABELS")
+  fi
   if [ -n "$MILESTONE" ]; then
     CREATE_ARGS+=(--milestone "$MILESTONE")
   fi
 
-  # 执行创建（set +e 确保能捕获退出码）
+  # 创建 Issue（stderr 写入临时文件，避免污染 URL）
   set +e
-  ISSUE_URL=$(gh issue create "${CREATE_ARGS[@]}" 2>&1)
+  ISSUE_URL=$(gh issue create "${CREATE_ARGS[@]}" 2>/tmp/gh_create_err.txt)
   CREATE_EXIT=$?
   set -e
 
   if [ $CREATE_EXIT -ne 0 ]; then
     log_error "Failed to create Issue."
-    echo "$ISSUE_URL"
+    cat /tmp/gh_create_err.txt >&2
+    rm -f /tmp/gh_create_err.txt
     exit 1
   fi
+  rm -f /tmp/gh_create_err.txt
 
-  # 提取 Issue 编号（从 URL 末尾的数字）
+  # 提取 Issue 编号
   ISSUE_NUM=$(echo "$ISSUE_URL" | grep -o '[0-9]*$')
-
   if [ -z "$ISSUE_NUM" ]; then
     log_error "Failed to extract Issue number from URL: $ISSUE_URL"
     exit 1
@@ -239,20 +168,26 @@ main() {
   mkdir -p .claude/gh-issue
   echo "$ISSUE_NUM" > .claude/gh-issue/current-issue.txt
 
-  # 注入 Issue 引用到计划文件
+  # 注入 Issue 引用
   if ! grep -q "<!-- Issue: #" "$PLAN_FILE"; then
     inject_issue_ref "$ISSUE_NUM" "$PLAN_FILE"
     log_info "Added Issue reference to plan file"
   fi
 
-  # 添加初始状态标签 status: plan
-  gh issue edit "$ISSUE_NUM" --add-label "status: plan" 2>/dev/null || true
+  # 添加初始状态标签
+  if gh issue edit "$ISSUE_NUM" --add-label "status: plan" 2>/dev/null; then
+    log_info "Added status: plan label"
+  else
+    log_warn "Failed to add 'status: plan'. Add manually: gh issue edit $ISSUE_NUM --add-label 'status: plan'"
+  fi
 
   echo ""
   log_info "Issue created successfully!"
   echo "  URL: $ISSUE_URL"
   echo "  Number: #$ISSUE_NUM"
-  echo "  Labels: $ISSUE_LABELS, status: plan"
+  if [ -n "$ISSUE_LABELS" ]; then
+    echo "  Labels: $ISSUE_LABELS, status: plan"
+  fi
   echo "  Saved to: .claude/gh-issue/current-issue.txt"
   echo ""
   echo "Next steps:"

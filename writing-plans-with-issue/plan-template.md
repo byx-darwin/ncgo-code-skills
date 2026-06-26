@@ -18,12 +18,13 @@
 
 **Issue 标题:** feat: [功能名称]
 
-**Issue 标签:** enhancement, [module], [priority]
+**Issue 标签:** enhancement,[module],[priority]
 <!-- 
 标签说明：
 - 类型：enhancement（新功能）, bug（修复）, refactor（重构）, docs（文档）, test（测试）
 - 模块：go-common, go-middleware, go-framework, 或具体包名
 - 优先级：priority:high, priority:medium, priority:low
+- 注意：逗号后不要加空格（gh CLI 要求）
 -->
 
 **Issue 描述:**
@@ -62,7 +63,44 @@ path/to/module/
 
 ## Tasks
 
-### Task 1.1: [Component Name]
+> **Task 编号规则（硬性）：Task 1 = 创建 Issue，Task 2 = 同步状态为 in-progress。Task 3+ 为开发任务，最后一个为收尾任务。**
+
+### Task 1: 创建 GitHub Issue
+
+**Description:** 从 "GitHub Issue 规划" 部分提取信息，创建 Issue 并保存编号到 `.claude/gh-issue/current-issue.txt`。
+
+- [ ] **Step 1: 运行 scripts/create-issue.sh**
+
+```bash
+bash [base-dir]/scripts/create-issue.sh docs/superpowers/plans/[计划文件名].md
+```
+
+- [ ] **Step 2: 验证 Issue 已创建**
+
+```bash
+cat .claude/gh-issue/current-issue.txt
+gh issue view "$(cat .claude/gh-issue/current-issue.txt)"
+```
+
+### Task 2: 同步 Issue 状态为 in-progress
+
+**Description:** 将 Issue 状态更新为 `status: in-progress`，表示开发已开始。
+
+- [ ] **Step 1: 运行 scripts/sync-status.sh**
+
+```bash
+bash [base-dir]/scripts/sync-status.sh in-progress
+```
+
+- [ ] **Step 2: 确认**
+
+```bash
+echo "✅ Issue #$(cat .claude/gh-issue/current-issue.txt) 已标记为 in-progress"
+```
+
+---
+
+### Task 3: [Component Name]
 
 **Files:**
 - Create: `exact/path/to/file.go`
@@ -135,7 +173,7 @@ git commit -m "feat(package): add FunctionName"
 
 ---
 
-### Task 1.2: [Component Name]
+### Task 4: [Component Name]
 
 **Files:**
 - Create: `exact/path/to/file.go`
@@ -150,6 +188,21 @@ git commit -m "feat(package): add FunctionName"
 - [ ] **Step 3: Implement minimal code**
 - [ ] **Step 4: Run test to verify it passes**
 - [ ] **Step 5: Commit**
+
+---
+
+### Task N: 收尾 — 本地合并后关闭 Issue
+
+**Description:** 开发完成并合并到 base 分支后，push + 同步验收 checkbox + 关闭 Issue。
+
+> 如选择 PR 路径（Option 2），则用 `link-pr.sh` 代替。
+
+- [ ] **Step 1: 确保已合并到 base 分支**
+- [ ] **Step 2: 运行 scripts/finish-issue.sh**（自动同步 checkbox、push、关闭 Issue、清理 state）
+
+```bash
+bash [base-dir]/scripts/finish-issue.sh
+```
 
 ---
 
@@ -187,7 +240,7 @@ go tool cover -func=coverage.out | grep total
 - [ ] Code review approved
 - [ ] Documentation updated
 - [ ] Coverage > 80%
-- [ ] GitHub Issue updated
+- [ ] GitHub Issue updated（验收 checkbox 已打钩，finish-issue.sh 自动同步）
 - [ ] PR created with `Closes #N` (PR 路径) 或 finish-issue.sh 已运行（本地合并路径）
 - [ ] Merged to main
 

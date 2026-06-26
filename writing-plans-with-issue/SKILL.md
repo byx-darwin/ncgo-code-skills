@@ -177,13 +177,19 @@ echo "✅ Issue #$(cat .claude/gh-issue/current-issue.txt) 已标记为 in-progr
 git branch --show-current  # 应该在 main/master 上
 ```
 
-- [ ] **Step 2: 运行 scripts/finish-issue.sh**
+- [ ] **Step 2: 运行 scripts/finish-issue.sh（含验收 checkbox 同步）**
+
+`finish-issue.sh` 会自动：
+1. 将 Issue `## 验收标准` 下的 `- [ ]` 替换为 `- [x]`
+2. Push base 分支
+3. 关闭 Issue
+4. 清理 local state
 
 ```bash
 bash [base-dir]/scripts/finish-issue.sh
 ```
 
-- [ ] **Step 3: 确认 Issue 已关闭**
+- [ ] **Step 3: 确认 Issue 已关闭且 checkbox 已打钩**
 
 ```bash
 gh issue view "$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo 'already cleaned')"
@@ -314,6 +320,14 @@ rm .claude/gh-issue/current-issue.txt
 
 ## Version History
 
+- v1.2.0 (2026-06-26) — 多角色审查 + 质量修复
+  - 新增 `_common.sh` 共享库，消除 ~400 行重复代码
+  - 统一所有脚本 `set -euo pipefail` + `cd_to_git_root()`
+  - `sync-status.sh` 标签操作改为先加后删（非原子→原子）
+  - `finish-issue.sh` 新增 Issue body 空检查、已关闭检查、验收 checkbox 同步
+  - `link-pr.sh` push 失败改为 exit 1（不再 warn + continue）
+  - `create-issue.sh` stderr 分离、标签空格保留、status: plan 失败显式 warning
+  - `plan-template.md` 新增 Task 1/2/收尾占位，标签示例修正
 - v1.1.0 (2026-06-26) — 本地合并路径支持
   - 新增 `finish-issue.sh`：本地合并后 push + 关闭 Issue + 清理 state
   - 计划模板新增最终任务（收尾 — 本地合并后关闭 Issue）
