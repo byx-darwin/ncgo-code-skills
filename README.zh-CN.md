@@ -1,65 +1,97 @@
 # ncgo-code
 
-Claude Code 开发工作流技能集 — 从计划编写到 GitHub Issue 创建、状态跟踪、PR 自动化，完整编码闭环。
+Claude Code 开发全流程技能集 — 计划、Issue 跟踪、PR 自动化。与 [Superpowers](https://github.com/obra/Superpowers) 配合使用。
 
 ## 安装
 
 ```bash
+# 1. Superpowers
+git clone https://github.com/obra/Superpowers.git ~/.claude/skills/superpowers
+
+# 2. ncgo-code
 git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/ncgo-code
+
+# 3. GitHub CLI
+brew install gh && gh auth login
 ```
 
 ## 技能
 
-### writing-plans-with-issue
+### `writing-plans-with-issue` (ncgo-code)
 
-创建包含 GitHub Issue 规划的技术计划。Task 1 自动创建 Issue，Task 2 同步状态，后续所有 commit 可引用 `(#N)`。
-
-```
-触发词: "创建实现计划"、"写实现方案"、"write implementation plan"
-```
-
-生成计划后输出：
+生成实现计划，Task 1 自动创建 Issue。在写任何代码之前拿到 Issue #N，后续所有 commit 引用 `(#N)`。
 
 ```
-✅ 计划已生成: docs/superpowers/plans/xxx.md
+"给新功能写个实现方案"
+```
 
-现在可以开始开发了（推荐在新窗口/工作树中执行）：
+### `issue-status` (ncgo-code)
+
+更新当前活跃 Issue 的状态标签。自动读取 `.claude/gh-issue/current-issue.txt`。
+
+```
+"标记完成" / "提交审查" / "开始开发"
+```
+
+## 完整流程
+
+从想法到 PR 合并的每一步，以及涉及的 skill：
+
+```
+第一步 — 头脑风暴（可选）
+  superpowers:brainstorming
+  → 澄清需求，明确范围
+
+第二步 — 创建计划 + Issue
+  /writing-plans-with-issue
+  → 计划文件 + Issue 元数据
+  → Task 1: 创建 Issue (#N)
+  → Task 2: 同步状态为 in-progress
+
+  输出:
+  ✅ 计划已生成: docs/superpowers/plans/xxx.md
+  现在可以开始开发了:
+    /subagent-driven-development docs/superpowers/plans/xxx.md
+
+第三步 — 隔离工作空间（推荐）
+  superpowers:using-git-worktrees
+  → git worktree add -b feat/xxx ../xxx-worktree main
+
+第四步 — 执行开发任务
   /subagent-driven-development docs/superpowers/plans/xxx.md
+  → 逐个执行任务，commit 引用 (#N)
+
+第五步 — 管理状态
+  /issue-status "in-review"   ← 提 PR 前
+  /issue-status "done"        ← 合并后
+
+第六步 — 创建 PR
+  superpowers:finishing-a-development-branch
+  → 选择 "创建 PR"
+  → link-pr.sh: PR 关联 "Closes #N"
+
+第七步 — 合并
+  PR 合并 → GitHub 自动关闭 Issue #N ✅
 ```
 
-### issue-status
-
-管理当前活跃 Issue 的状态标签。
+## 目录结构
 
 ```
-触发词: "标记完成"、"开始开发"、"提交审查"、"mark done"、"in review"
-```
-
-状态映射:
-
-| 自然语言 | 状态 |
-|---------|------|
-| "开始开发"、"start" | `in-progress` |
-| "提交审查"、"review" | `in-review` |
-| "完成"、"done" | `done` |
-
-## 依赖
-
-- [Superpowers](https://github.com/anthropics/superpowers) — 提供 `writing-plans`、`subagent-driven-development`、`finishing-a-development-branch`
-- [GitHub CLI](https://cli.github.com/) (`gh`) — Issue 和 PR 操作
-
-## 完整开发闭环
-
-```
-writing-plans-with-issue          → 生成计划 + Task 1 创建 Issue
-    ↓
-/subagent-driven-development      → 执行开发任务（在新窗口）
-    ↓
-finishing-a-development-branch    → 创建 PR + Closes #N
-    ↓
-PR 合并                           → Issue 自动关闭 ✅
+~/.claude/skills/ncgo-code/
+├── LICENSE
+├── README.md / README.zh-CN.md
+├── issue-status/
+│   └── SKILL.md
+└── writing-plans-with-issue/
+    ├── SKILL.md
+    ├── plan-template.md
+    └── scripts/
+        ├── create-issue.sh      # 解析计划 → gh issue create
+        ├── sync-status.sh       # 更新 Issue 标签
+        ├── link-pr.sh           # 创建 PR + Closes #N
+        └── list-issues.sh       # 按状态列出 Issue
 ```
 
 ## 许可证
 
-MIT
+MIT — 详见 [LICENSE](LICENSE)
