@@ -25,7 +25,7 @@ writing-plans-with-issue (当前 session)
   │
   ▼
 用户复制指令，开新 Claude Code + Agent Teams session:
-  $ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude
+  $ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
   > /subagent-driven-development docs/superpowers/plans/xxx.md
   │
   ▼
