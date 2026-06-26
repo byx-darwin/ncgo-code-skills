@@ -188,8 +188,36 @@ go tool cover -func=coverage.out | grep total
 - [ ] Documentation updated
 - [ ] Coverage > 80%
 - [ ] GitHub Issue updated
-- [ ] PR created with `Closes #N`
+- [ ] PR created with `Closes #N` (PR 路径) 或 finish-issue.sh 已运行（本地合并路径）
 - [ ] Merged to main
+
+---
+
+## Retrospective（可选）
+
+> 计划执行完成后，回顾执行过程，输出 skill/流程改进建议。此步骤为**可选**，不阻塞交付。
+
+执行 `/code-review` 后，controller 应分析：
+
+1. **代码问题** — 修代码
+2. **流程摩擦点** — 记录并输出改进建议
+
+输出格式：
+
+```
+📋 执行回顾
+
+### 代码改进
+- [列出需要修复的代码问题]
+
+### 流程改进建议（可选）
+- [skill 名称]: [发现的问题] → [建议的改进]
+- 例: finishing-a-development-branch: 本地合并不 push → 已在 writing-plans-with-issue 中加 finish-issue.sh 兜底
+
+是否要应用这些流程改进？[y/N]
+```
+
+用户选择 `y` 时才修改 skills，选择 `N` 则仅记录。
 
 ---
 

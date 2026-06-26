@@ -241,6 +241,10 @@ gh issue view "$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo 'alr
    └─ Option 2: 创建 PR
       └─ link-pr.sh → PR (Closes #N) + Issue status: in-review
          └─ PR 合并 → GitHub 自动关闭 Issue #N ✅
+
+8. （可选）执行回顾
+   └─ /code-review → 分析代码问题 + 流程摩擦点
+      └─ 输出 skill 改进建议 → 用户确认后应用
 ```
 
 ---
