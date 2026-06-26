@@ -1,6 +1,6 @@
 # ncgo-code
 
-Claude Code skills for the complete development lifecycle — plan, Issue tracking, and PR automation. Designed to work with [Superpowers](https://github.com/obra/Superpowers).
+Claude Code skills for the complete development lifecycle — plan, Issue tracking, PR automation, and weekly reporting. Designed to work with [Superpowers](https://github.com/obra/Superpowers).
 
 ## Install
 
@@ -31,6 +31,14 @@ Updates the status label on the active Issue. Reads `.claude/gh-issue/current-is
 
 ```
 "mark done" / "submit for review" / "start dev"
+```
+
+### `weekly-report` (ncgo-code)
+
+Scans one or more Git repositories and generates a structured weekly development report. Supports custom cut-off times and multi-project aggregation, with plain-text output (no tables).
+
+```
+"generate this week's report" / "weekly report for project-a project-b, cut off Friday 18:00"
 ```
 
 ## Full Workflow
@@ -81,6 +89,8 @@ Step 7 — Merge
 ├── LICENSE
 ├── README.md / README.zh-CN.md
 ├── issue-status/
+│   └── SKILL.md
+├── weekly-report/
 │   └── SKILL.md
 └── writing-plans-with-issue/
     ├── SKILL.md

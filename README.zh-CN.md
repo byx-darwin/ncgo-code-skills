@@ -1,6 +1,6 @@
 # ncgo-code
 
-Claude Code 开发全流程技能集 — 计划、Issue 跟踪、PR 自动化。与 [Superpowers](https://github.com/obra/Superpowers) 配合使用。
+Claude Code 开发全流程技能集 — 计划、Issue 跟踪、PR 自动化、周报生成。与 [Superpowers](https://github.com/obra/Superpowers) 配合使用。
 
 ## 安装
 
@@ -31,6 +31,14 @@ brew install gh && gh auth login
 
 ```
 "标记完成" / "提交审查" / "开始开发"
+```
+
+### `weekly-report` (ncgo-code)
+
+扫描一个或多个 Git 仓库，按项目分组生成结构化研发周报。支持自定义截止时间和多项目聚合，输出纯文本格式（无表格）。
+
+```
+"生成本周周报" / "项目A 项目B 周报，周五 18:00 截止"
 ```
 
 ## 完整流程
@@ -81,6 +89,8 @@ brew install gh && gh auth login
 ├── LICENSE
 ├── README.md / README.zh-CN.md
 ├── issue-status/
+│   └── SKILL.md
+├── weekly-report/
 │   └── SKILL.md
 └── writing-plans-with-issue/
     ├── SKILL.md
