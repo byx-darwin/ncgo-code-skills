@@ -24,7 +24,7 @@ writing-plans-with-issue (当前 session)
   └─ 输出下一步指令
   │
   ▼
-用户复制指令，开新 Claude Code + Agent Teams session:
+用户启动 Claude Code + Agent Teams（同一终端，分屏或 in-process）:
   $ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
   > /subagent-driven-development docs/superpowers/plans/xxx.md
   │

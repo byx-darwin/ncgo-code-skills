@@ -223,10 +223,9 @@ gh issue view "$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo 'alr
 
 下一步执行（二选一）：
 
-方式 1 — Agent Teams 并行模式（推荐，~2x 加速）:
-  1. 打开新终端窗口
-  2. CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
-  3. /subagent-driven-development docs/superpowers/plans/YYYY-MM-DD-feature-name.md
+方式 1 — Agent Teams 模式（推荐，独立任务并行执行）:
+  CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
+  > /subagent-driven-development docs/superpowers/plans/YYYY-MM-DD-feature-name.md
 
 方式 2 — 单 Agent 模式（当前窗口）:
   /subagent-driven-development docs/superpowers/plans/YYYY-MM-DD-feature-name.md
