@@ -58,8 +58,8 @@ main() {
 
   log_info "Syncing acceptance criteria checkboxes..."
 
-  ISSUE_BODY=$(gh issue view "$ISSUE_NUM" --json body -q '.body') || {
-    log_error "Failed to fetch Issue #$ISSUE_NUM body. Check Issue number and gh auth."
+  ISSUE_BODY=$(provider_get_issue_body "$ISSUE_NUM") || {
+    log_error "Failed to fetch Issue #$ISSUE_NUM body. Check Issue number and auth."
     exit 1
   }
 
@@ -80,7 +80,7 @@ main() {
     TEMP_BODY=$(mktemp)
     trap 'rm -f "$TEMP_BODY"' EXIT
     printf '%s' "$UPDATED_BODY" > "$TEMP_BODY"
-    gh issue edit "$ISSUE_NUM" --body-file "$TEMP_BODY"
+    provider_update_issue_body "$ISSUE_NUM" "$TEMP_BODY"
     log_info "Acceptance criteria checkboxes synced."
   else
     log_info "Acceptance criteria already checked (or no changes needed)."
@@ -88,15 +88,15 @@ main() {
 
   # ── Step 3: 关闭 Issue ──
 
-  ISSUE_STATE=$(gh issue view "$ISSUE_NUM" --json state -q '.state' 2>/dev/null || echo "UNKNOWN")
+  ISSUE_STATE=$(provider_get_issue_state "$ISSUE_NUM" 2>/dev/null || echo "UNKNOWN")
 
-  if [ "$ISSUE_STATE" = "CLOSED" ]; then
+  if [ "$ISSUE_STATE" = "closed" ]; then
     log_info "Issue #$ISSUE_NUM is already closed."
   else
     log_info "Closing Issue #$ISSUE_NUM..."
 
     if [ -n "$COMMENT" ]; then
-      gh issue close "$ISSUE_NUM" --comment "$COMMENT" || {
+      provider_close_issue "$ISSUE_NUM" "$COMMENT" || {
         log_error "Failed to close Issue #$ISSUE_NUM"
         exit 1
       }
@@ -108,7 +108,7 @@ main() {
 最近的合并提交:
 ${RELATED_COMMITS:-（无合并提交记录）}"
 
-      gh issue close "$ISSUE_NUM" --comment "$DEFAULT_COMMENT" || {
+      provider_close_issue "$ISSUE_NUM" "$DEFAULT_COMMENT" || {
         log_error "Failed to close Issue #$ISSUE_NUM"
         exit 1
       }

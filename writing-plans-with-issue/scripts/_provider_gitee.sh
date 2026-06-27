@@ -231,6 +231,20 @@ provider_list_issues() {
     jq '[.[] | {number: .number, title: .title, state: .state, url: .html_url}]'
 }
 
+provider_update_issue_body() {
+  local issue_num="$1"
+  local body_file="$2"
+  local repo
+  repo=$(_gitee_get_repo)
+  local body_text
+  body_text=$(cat "$body_file")
+  _gitee_api PATCH "/repos/${repo}/issues/${issue_num}" \
+    "$(jq -n --arg body "$body_text" '{body: $body}')" > /dev/null || {
+    echo "❌ Failed to update Gitee Issue #$issue_num body"
+    return 1
+  }
+}
+
 # ── PR operations ──
 
 provider_create_pr() {
@@ -274,6 +288,13 @@ provider_list_prs() {
   repo=$(_gitee_get_repo)
   _gitee_api GET "/repos/${repo}/pulls?head=${repo%%/*}:${head_branch}&state=open" | \
     jq -r '.[0].number // empty' 2>/dev/null || echo ""
+}
+
+provider_get_pr_url() {
+  local pr_num="$1"
+  local repo
+  repo=$(_gitee_get_repo)
+  echo "https://gitee.com/${repo}/pulls/${pr_num}"
 }
 
 # ── Label management ──

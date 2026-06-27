@@ -129,6 +129,17 @@ provider_list_issues() {
   }
 }
 
+provider_update_issue_body() {
+  local issue_num="$1"
+  local body_file="$2"
+  local body_text
+  body_text=$(cat "$body_file")
+  glab issue update "$issue_num" -d "$body_text" > /dev/null 2>&1 || {
+    echo "❌ Failed to update GitLab Issue #$issue_num body"
+    return 1
+  }
+}
+
 # ── MR operations (Merge Request = GitLab's PR) ──
 
 provider_create_pr() {
@@ -163,6 +174,11 @@ provider_list_prs() {
   local head_branch="$1"
   glab mr list --source-branch "$head_branch" --output json 2>/dev/null | \
     jq -r '.[0].iid // .[0].number // empty' 2>/dev/null || echo ""
+}
+
+provider_get_pr_url() {
+  local pr_num="$1"
+  glab mr view "$pr_num" --output json 2>/dev/null | jq -r '.web_url // empty' || echo ""
 }
 
 # ── Label management ──

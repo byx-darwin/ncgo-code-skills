@@ -55,9 +55,9 @@ main() {
 
   # 先加后删（原子性更好：即使后续失败，新状态标签已就位）
   log_info "Adding status label: $TARGET_LABEL"
-  gh issue edit "$ISSUE_NUM" --add-label "$TARGET_LABEL" || {
+  provider_add_labels "$ISSUE_NUM" "$TARGET_LABEL" || {
     log_error "Failed to add status label."
-    echo "Run manually: gh issue edit $ISSUE_NUM --add-label '$TARGET_LABEL'"
+    echo "Run manually to add label: $TARGET_LABEL"
     exit 1
   }
 
@@ -65,7 +65,7 @@ main() {
   log_info "Removing old status labels..."
   for old in "status: plan" "status: in-progress" "status: in-review" "status: done"; do
     if [ "$old" != "$TARGET_LABEL" ]; then
-      gh issue edit "$ISSUE_NUM" --remove-label "$old" 2>/dev/null || true
+      provider_remove_label "$ISSUE_NUM" "$old" 2>/dev/null || true
     fi
   done
 

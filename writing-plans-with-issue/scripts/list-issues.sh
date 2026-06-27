@@ -54,45 +54,48 @@ gh_install_instructions() {
 }
 
 check_dependencies() {
-  if ! command -v gh &> /dev/null; then
-    gh_install_instructions
+  if ! command -v gh &> /dev/null && ! command -v glab &> /dev/null; then
+    if [ "${PLATFORM:-github}" = "gitee" ]; then
+      echo "❌ Gitee backend requires curl + jq + GITEE_TOKEN."
+      echo "   Set GITEE_TOKEN and ensure curl/jq are installed."
+    else
+      gh_install_instructions
+    fi
     exit 1
   fi
-
-  if ! gh auth status &> /dev/null; then
-    log_error "GitHub CLI is not authenticated."
-    echo "Run: gh auth login"
-    exit 1
-  fi
+  # Actual auth check is done by provider_check_prerequisites in _common.sh
 }
 
 main() {
+  # list-issues.sh is standalone (doesn't source _common.sh), so we need provider
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  source "$SCRIPT_DIR/_provider.sh"
   check_dependencies
 
   echo ""
   log_header "=== Plan（待开始） ==="
-  gh issue list --label "status: plan" --state open \
-    --json number,title,labels --jq '.[] | "#\(.number) \(.title)"' 2>/dev/null \
+  provider_list_issues "status: plan" "open" "20" 2>/dev/null | \
+    jq -r '.[] | "#\(.number) \(.title)"' 2>/dev/null \
     || echo "  (无)"
 
   echo ""
   log_header "=== In Progress（开发中） ==="
-  gh issue list --label "status: in-progress" --state open \
-    --json number,title --jq '.[] | "#\(.number) \(.title)"' 2>/dev/null \
+  provider_list_issues "status: in-progress" "open" "20" 2>/dev/null | \
+    jq -r '.[] | "#\(.number) \(.title)"' 2>/dev/null \
     || echo "  (无)"
 
   echo ""
   log_header "=== In Review（审查中） ==="
-  gh issue list --label "status: in-review" --state open \
-    --json number,title --jq '.[] | "#\(.number) \(.title)"' 2>/dev/null \
+  provider_list_issues "status: in-review" "open" "20" 2>/dev/null | \
+    jq -r '.[] | "#\(.number) \(.title)"' 2>/dev/null \
     || echo "  (无)"
 
   echo ""
   log_header "=== 当前活跃 Issue ==="
   if [ -f .claude/gh-issue/current-issue.txt ]; then
     ISSUE_NUM=$(cat .claude/gh-issue/current-issue.txt)
-    gh issue view "$ISSUE_NUM" --json number,title,state,url \
-      --jq '"#\(.number) \(.title) [\(.state)] \(.url)"' 2>/dev/null \
+    provider_get_issue_json "$ISSUE_NUM" 2>/dev/null | \
+      jq -r '"#\(.number) \(.title) [\(.state)] \(.url)"' 2>/dev/null \
       || echo "  Issue #$ISSUE_NUM (无法获取详情)"
   else
     echo "  未设置（运行 writing-plans-with-issue 创建新计划）"
@@ -100,8 +103,8 @@ main() {
 
   echo ""
   log_header "=== 最近关闭（5 条） ==="
-  gh issue list --state closed --limit 5 \
-    --json number,title,closedAt --jq '.[] | "#\(.number) \(.title) (closed: \(.closedAt))"' 2>/dev/null \
+  provider_list_issues "" "closed" "5" 2>/dev/null | \
+    jq -r '.[] | "#\(.number) \(.title)"' 2>/dev/null \
     || echo "  (无)"
 
   echo ""

@@ -113,6 +113,15 @@ provider_list_issues() {
   }
 }
 
+provider_update_issue_body() {
+  local issue_num="$1"
+  local body_file="$2"
+  gh issue edit "$issue_num" --body-file "$body_file" || {
+    echo "❌ Failed to update Issue #$issue_num body"
+    return 1
+  }
+}
+
 # ── PR operations ──
 
 provider_create_pr() {
@@ -132,6 +141,11 @@ provider_create_pr() {
 provider_list_prs() {
   local head_branch="$1"
   gh pr list --head "$head_branch" --json number --jq '.[0].number' 2>/dev/null || echo ""
+}
+
+provider_get_pr_url() {
+  local pr_num="$1"
+  gh pr view "$pr_num" --json url -q '.url' 2>/dev/null || echo ""
 }
 
 # ── Label management ──

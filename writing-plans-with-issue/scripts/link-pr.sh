@@ -103,14 +103,13 @@ main() {
   fi
 
   # 检查是否已有 PR
-  EXISTING_PR=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+  EXISTING_PR=$(provider_list_prs "$BRANCH" 2>/dev/null || echo "")
 
   if [ -n "$EXISTING_PR" ]; then
-    PR_URL="https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pull/$EXISTING_PR"
+    PR_URL=$(provider_get_pr_url "$EXISTING_PR")
     log_warn "PR #$EXISTING_PR already exists for this branch."
     log_info "PR URL: $PR_URL"
-    echo "To update the PR body with Issue link, run manually:"
-    echo "  gh pr edit $EXISTING_PR --body '$(printf '%s' "$PR_BODY" | sed "s/'/'\\\\''/g")'"
+    echo "To update the PR body with Issue link, run manually."
   else
     log_info "Creating new PR..."
 
@@ -119,11 +118,7 @@ main() {
     echo "$PR_BODY" > "$TEMP_BODY"
 
     set +e
-    PR_URL=$(gh pr create \
-      --title "$PR_TITLE" \
-      --body-file "$TEMP_BODY" \
-      --base "$BASE_BRANCH" \
-      2>/tmp/gh_pr_create_err.txt)
+    PR_URL=$(provider_create_pr "$PR_TITLE" "$TEMP_BODY" "$BASE_BRANCH" 2>/tmp/gh_pr_create_err.txt)
     PR_EXIT=$?
     set -e
 
