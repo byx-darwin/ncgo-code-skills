@@ -127,25 +127,16 @@ main() {
   # 确保 status: plan 标签存在
   ensure_status_label "status: plan" || true
 
-  log_info "Creating Issue on GitHub..."
+  log_info "Creating Issue on platform..."
 
   # 用临时文件存储 body（避免 shell 转义问题）
   TEMP_BODY=$(mktemp)
   trap 'rm -f "$TEMP_BODY"' EXIT
   echo "$ISSUE_BODY" > "$TEMP_BODY"
 
-  # 构建创建参数
-  CREATE_ARGS=(--title "$ISSUE_TITLE" --body-file "$TEMP_BODY")
-  if [ -n "$ISSUE_LABELS" ]; then
-    CREATE_ARGS+=(--label "$ISSUE_LABELS")
-  fi
-  if [ -n "$MILESTONE" ]; then
-    CREATE_ARGS+=(--milestone "$MILESTONE")
-  fi
-
-  # 创建 Issue（stderr 写入临时文件，避免污染 URL）
+  # 调用 Provider 创建 Issue
   set +e
-  ISSUE_URL=$(gh issue create "${CREATE_ARGS[@]}" 2>/tmp/gh_create_err.txt)
+  ISSUE_URL=$(provider_create_issue "$ISSUE_TITLE" "$TEMP_BODY" "$ISSUE_LABELS" "$MILESTONE" 2>/tmp/gh_create_err.txt)
   CREATE_EXIT=$?
   set -e
 
@@ -175,10 +166,10 @@ main() {
   fi
 
   # 添加初始状态标签
-  if gh issue edit "$ISSUE_NUM" --add-label "status: plan" 2>/dev/null; then
+  if provider_add_labels "$ISSUE_NUM" "status: plan" 2>/dev/null; then
     log_info "Added status: plan label"
   else
-    log_warn "Failed to add 'status: plan'. Add manually: gh issue edit $ISSUE_NUM --add-label 'status: plan'"
+    log_warn "Failed to add 'status: plan'. Add manually."
   fi
 
   echo ""

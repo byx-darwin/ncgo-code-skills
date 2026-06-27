@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/_provider.sh"
+
 # ── 颜色 ──
 
 RED='\033[0;31m'
@@ -31,21 +34,7 @@ cd_to_git_root() {
 # ── 依赖检查 ──
 
 check_dependencies() {
-  if ! command -v gh &> /dev/null; then
-    log_error "GitHub CLI (gh) is required."
-    echo "Install: https://cli.github.com/"
-    exit 1
-  fi
-
-  if ! gh auth status &> /dev/null; then
-    log_error "GitHub CLI is not authenticated."
-    echo ""
-    echo "Run: gh auth login"
-    echo "  - 选择 GitHub.com"
-    echo "  - 选择 HTTPS"
-    echo "  - 使用浏览器登录或粘贴 token"
-    exit 1
-  fi
+  provider_check_prerequisites
 }
 
 # ── Base 分支检测 ──
@@ -92,12 +81,6 @@ normalize_labels() {
 
 ensure_status_label() {
   local label="$1"
-  if ! gh label view "$label" &>/dev/null; then
-    gh label create "$label" --color "ededed" 2>/dev/null || {
-      log_warn "Failed to create label '$label'"
-      return 1
-    }
-    log_info "Created label: $label"
-  fi
+  provider_ensure_label "$label" || return 1
   return 0
 }
