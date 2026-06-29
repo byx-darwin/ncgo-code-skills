@@ -19,16 +19,21 @@ source "$SCRIPT_DIR/_common.sh"
 
 KEEP=0
 FORCE_PLATFORM=""
+READONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --platform) FORCE_PLATFORM="${2:?'--platform requires value'}"; shift 2 ;;
     --keep)     KEEP=1; shift ;;
+    --write)    READONLY=0; shift ;;
+    --readonly) READONLY=1; shift ;;
     -h|--help)
-      echo "Usage: smoke-test.sh [--platform github|gitee|gitlab] [--keep]"
+      echo "Usage: smoke-test.sh [--platform github|gitee|gitlab] [--keep] [--readonly] [--write]"
       echo "  Tests all provider functions against the current platform."
       echo "  --platform   Force a specific platform (default: auto-detect)"
       echo "  --keep       Keep the test issue after run (default: clean up)"
+      echo "  --readonly   Skip write tests (create/update/close). Auto-enabled for Gitee."
+      echo "  --write      Force write tests on Gitee (for tokens with full permissions)"
       exit 0
       ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -42,6 +47,17 @@ if [ -n "$FORCE_PLATFORM" ]; then
     github|gitee|gitlab) export WRITING_PLANS_PLATFORM="$FORCE_PLATFORM" ;;
     *) echo "❌ Invalid platform: $FORCE_PLATFORM" >&2; exit 1 ;;
   esac
+fi
+
+# Source provider to get PLATFORM variable (auto-detect)
+source "$SCRIPT_DIR/_provider.sh" > /dev/null 2>&1 || true
+
+# Gitee 默认 readonly（除非显式 --write）
+if [ "$PLATFORM" = "gitee" ] && [ "$READONLY" -eq 0 ] && [ "${SKIP_GITEE_WRITE_CHECK:-0}" != "1" ]; then
+  if [ -z "${GITEE_TOKEN:-}" ]; then
+    echo "🔒 Gitee detected, no GITEE_TOKEN set — enabling --readonly mode"
+    READONLY=1
+  fi
 fi
 
 # ── 状态追踪 ──
@@ -93,6 +109,8 @@ test_prerequisites() {
 
   if [ $rc -eq 0 ]; then
     pass "check_prerequisites"
+  elif [ "$READONLY" -eq 1 ]; then
+    echo "  ⚠️  check_prerequisites — failed, continuing in readonly mode"
   else
     fail "check_prerequisites" "$output"
     echo ""
@@ -101,9 +119,11 @@ test_prerequisites() {
   fi
 
   # Ensure test labels exist (needed for create_issue and add_labels tests)
-  echo "🔍 Ensuring test labels exist..."
-  provider_ensure_label "smoke-test" 2>/dev/null || true
-  provider_ensure_label "smoke-test-added" 2>/dev/null || true
+  if [ "$READONLY" -eq 0 ]; then
+    echo "🔍 Ensuring test labels exist..."
+    provider_ensure_label "smoke-test" 2>/dev/null || true
+    provider_ensure_label "smoke-test-added" 2>/dev/null || true
+  fi
 }
 
 test_create_issue() {
@@ -278,9 +298,12 @@ main() {
   cd_to_git_root
   cd_to_git_root > /dev/null 2>&1 || true  # silent
 
+  local mode_label=""
+  [ "$READONLY" -eq 1 ] && mode_label=" (readonly)"
+
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "  Provider Smoke Test — Platform: ${PLATFORM}"
+  echo "  Provider Smoke Test — Platform: ${PLATFORM}${mode_label}"
   echo "  Repo: $(provider_repo_name_with_owner 2>/dev/null || echo 'unknown')"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
@@ -288,20 +311,28 @@ main() {
   # Phase 1: Prerequisites
   test_prerequisites
 
-  # Phase 2: Lifecycle tests (these depend on create_issue succeeding)
+  # Phase 2: Read tests (always run)
+  test_list_issues
+
+  if [ "$READONLY" -eq 1 ]; then
+    echo ""
+    echo "🔒 Write tests skipped (--readonly mode)"
+    report
+    return
+  fi
+
+  # Phase 3: Write tests (create → update → close lifecycle)
   test_create_issue
   test_get_issue_body
   test_get_issue_json
   test_get_issue_state
   test_add_labels
   test_remove_label
-  test_list_issues
   test_update_issue_body
 
-  # Phase 3: Close (unless --keep)
+  # Phase 4: Close (unless --keep)
   if [ "${KEEP:-0}" -eq 0 ]; then
     test_close_issue
-    # Verify it's actually closed
     if [ -n "${TEST_ISSUE_NUM:-}" ]; then
       local state
       state=$(provider_get_issue_state "$TEST_ISSUE_NUM" 2>/dev/null || echo "unknown")
@@ -318,5 +349,7 @@ main() {
 
   report
 }
+
+main "$@"
 
 main "$@"
