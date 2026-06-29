@@ -31,17 +31,17 @@ _gitee_api() {
   local path="$2"
   local body="${3:-}"
 
-  # Use ? or & depending on whether path already contains query parameters
-  local sep="?"
-  [[ "$path" == *"?"* ]] && sep="&"
-  local url="${GITEE_API_BASE}${path}${sep}access_token=${GITEE_TOKEN}"
+  # Use Authorization header (not URL query) to prevent token exposure in ps listings
+  local url="${GITEE_API_BASE}${path}"
 
   if [ -n "$body" ]; then
     curl -s -X "$method" "$url" \
       -H "Content-Type: application/json" \
+      -H "Authorization: Bearer ${GITEE_TOKEN}" \
       -d "$body" 2>/tmp/gitee_curl_err.txt
   else
-    curl -s -X "$method" "$url" 2>/tmp/gitee_curl_err.txt
+    curl -s -X "$method" "$url" \
+      -H "Authorization: Bearer ${GITEE_TOKEN}" 2>/tmp/gitee_curl_err.txt
   fi
 }
 
@@ -314,10 +314,11 @@ provider_ensure_label() {
   local repo
   repo=$(_gitee_get_repo)
 
-  # Check if label exists
+  # Check if label exists (use Authorization header to avoid token in URL)
   local status_code
   status_code=$(curl -s -o /dev/null -w "%{http_code}" \
-    "${GITEE_API_BASE}/repos/${repo}/labels/${label}?access_token=${GITEE_TOKEN}" 2>/dev/null)
+    -H "Authorization: Bearer ${GITEE_TOKEN}" \
+    "${GITEE_API_BASE}/repos/${repo}/labels/${label}" 2>/dev/null)
 
   if [ "$status_code" = "404" ]; then
     # Create the label
