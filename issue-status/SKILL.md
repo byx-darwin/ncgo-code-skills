@@ -38,7 +38,7 @@ cat .claude/gh-issue/current-issue.txt
 bash [base-dir]/scripts/sync-status.sh <issue-number> <status>
 ```
 
-> **[base-dir] 替换规则：** `sync-status.sh` 位于 `writing-plans-with-issue` skill 的 scripts 目录。执行时从该 skill 的 base directory 构造绝对路径（如 `~/.claude/skills/ncgo-skills/ncgo-code/writing-plans-with-issue/scripts/sync-status.sh`）。
+> **[base-dir] 替换规则：** `sync-status.sh` 位于 `writing-plans-with-issue` skill 的 scripts 目录。执行时从该 skill 的 base directory 构造绝对路径（如 `~/.claude/skills/ncgo-code/writing-plans-with-issue/scripts/sync-status.sh`）。
 
 ### Step 3: 确认结果
 
