@@ -59,7 +59,7 @@ provider_create_issue() {
 provider_add_labels() {
   local issue_num="$1"
   local labels="$2"
-  glab issue update "$issue_num" --add-label "$labels" > /dev/null 2>&1 || {
+  glab issue update "$issue_num" -l "$labels" > /dev/null 2>&1 || {
     echo "❌ Failed to add labels to GitLab Issue #$issue_num"
     return 1
   }
@@ -68,7 +68,7 @@ provider_add_labels() {
 provider_remove_label() {
   local issue_num="$1"
   local label="$2"
-  glab issue update "$issue_num" --remove-label "$label" > /dev/null 2>&1 || true
+  glab issue update "$issue_num" --unlabel "$label" > /dev/null 2>&1 || true
 }
 
 provider_close_issue() {
@@ -201,8 +201,8 @@ provider_get_pr_url() {
 
 provider_ensure_label() {
   local label="$1"
-  # glab will error if label exists, which is fine
-  glab label create "$label" --color "ededed" 2>/dev/null || true
+  # glab 1.x uses --name flag; failures are non-fatal (label may already exist)
+  glab label create --name "$label" --color "ededed" 2>/dev/null || true
   return 0
 }
 
