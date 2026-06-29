@@ -57,10 +57,38 @@ grep -q '.claude/gh-issue/' .gitignore 2>/dev/null || echo '.claude/gh-issue/' >
 | `scripts/sync-status.sh` | 更新 Issue 的状态标签 | Task 2 / PR 阶段 |
 | `scripts/link-pr.sh` | 创建 Pull Request 并关联 Issue（Closes #N） | 开发完成后（PR 路径） |
 | `scripts/finish-issue.sh` | 本地合并后收尾：push + 关闭 Issue + 清理 state | 开发完成后（本地合并路径） |
+| `scripts/smoke-test.sh` | 跨平台 Provider 冒烟测试（读写全流程） | 开发 / 调试 |
 
 ---
 
-## Gitee 写入能力检测（计划生成前必做）
+## 测试（冒烟测试）
+
+修改 Provider 代码后，运行跨平台冒烟测试验证：
+
+```bash
+# 在当前仓库运行（自动检测平台）
+bash scripts/smoke-test.sh
+
+# 强制指定平台
+bash scripts/smoke-test.sh --platform gitlab
+
+# Gitee 默认只测读操作（API 写入受限），加 --write 强制完整测试
+bash scripts/smoke-test.sh --write
+```
+
+测试覆盖 11 项核心操作：`prerequisites → create → get_body → get_json → get_state → add_labels → remove_label → list → update_body → close → verify_closed`。
+
+**平台默认行为：**
+
+| 平台 | 默认模式 | 测试数 |
+|------|---------|:-----:|
+| GitHub | 完整读写 | 11 |
+| GitLab | 完整读写 | 11 |
+| Gitee | 只读（`--readonly`） | 2 |
+
+Gitee 因免费账号 API 写入受限，默认跳过写操作。如有完整权限的 Token，用 `--write` 强制测试写入。
+
+---
 
 Gitee 免费账号的 API 写入可能受限。**生成计划前，必须先检测当前平台的 Issue 写入能力**，选择对应的计划模板。
 

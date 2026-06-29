@@ -11,8 +11,11 @@ git clone https://github.com/obra/Superpowers.git ~/.claude/skills/superpowers
 # 2. ncgo-code
 git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/ncgo-code
 
-# 3. GitHub CLI
-brew install gh && gh auth login
+# 3. 平台 CLI（任选其一）
+#    GitHub:  brew install gh && gh auth login
+#    GitLab:  brew install glab && glab auth login
+#    Gitee:   export GITEE_TOKEN="你的token"  (从 https://gitee.com/profile/personal_access_tokens 生成)
+#             （Gitee 免费账号 API 写入可能受限，仅支持读操作）
 ```
 
 ## 技能
@@ -112,8 +115,29 @@ brew install gh && gh auth login
         ├── sync-status.sh       # 更新 Issue 标签
         ├── finish-issue.sh      # Push + 关闭 Issue + 清理
         ├── link-pr.sh           # 创建 PR + Closes #N
-        └── list-issues.sh       # 按状态列出 Issue
+        ├── list-issues.sh       # 按状态列出 Issue
+        └── smoke-test.sh        # 跨平台 Provider 冒烟测试
 ```
+
+## 测试
+
+```bash
+# 运行跨平台 Provider 冒烟测试
+bash writing-plans-with-issue/scripts/smoke-test.sh
+
+# Gitee 默认只测读操作（API 写入受限）
+# 加 --write 强制完整测试（需完整权限 Token）
+```
+
+## 平台支持
+
+| 平台 | 读 | 写 | CLI |
+|------|:--:|:--:|-----|
+| GitHub | ✅ | ✅ | `gh` |
+| GitLab（自建） | ✅ | ✅ | `glab` |
+| Gitee | ✅ | ⚠️ 受限 | `curl` + `GITEE_TOKEN` |
+
+> **Gitee 说明：** 免费账号 API 写入可能受限。Provider 和冒烟测试会优雅降级——读操作正常，写操作输出明确的中文错误提示和替代方案。
 
 ## 许可证
 

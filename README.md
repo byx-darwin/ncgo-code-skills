@@ -11,8 +11,11 @@ git clone https://github.com/obra/Superpowers.git ~/.claude/skills/superpowers
 # 2. ncgo-code
 git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/ncgo-code
 
-# 3. GitHub CLI
-brew install gh && gh auth login
+# 3. Platform CLI (choose one)
+#    GitHub:  brew install gh && gh auth login
+#    GitLab:  brew install glab && glab auth login
+#    Gitee:   export GITEE_TOKEN="your_token"  (from https://gitee.com/profile/personal_access_tokens)
+#             (Gitee 免费账号 API 写入可能受限，仅支持读操作)
 ```
 
 ## Skills
@@ -112,8 +115,29 @@ Step 7 — Merge
         ├── sync-status.sh       # Update issue labels
         ├── finish-issue.sh      # Push + close issue + cleanup
         ├── link-pr.sh           # Create PR + Closes #N
-        └── list-issues.sh       # List issues by status
+        ├── list-issues.sh       # List issues by status
+        └── smoke-test.sh        # Cross-platform provider smoke test
 ```
+
+## Testing
+
+```bash
+# Run cross-platform provider smoke test
+bash writing-plans-with-issue/scripts/smoke-test.sh
+
+# Gitee defaults to readonly (API write limitation)
+# Use --write to force full test if you have a token with write permissions
+```
+
+## Platform Support
+
+| Platform | Read | Write | CLI |
+|----------|:----:|:-----:|-----|
+| GitHub | ✅ | ✅ | `gh` |
+| GitLab (self-hosted) | ✅ | ✅ | `glab` |
+| Gitee | ✅ | ⚠️ limited | `curl` + `GITEE_TOKEN` |
+
+> **Gitee note:** Free-tier accounts may have API write restrictions. The provider and smoke test gracefully handle this — read-only operations work correctly, write operations report clear error messages with workarounds.
 
 ## License
 
