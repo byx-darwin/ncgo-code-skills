@@ -41,6 +41,14 @@ brew install gh && gh auth login
 "生成本周周报" / "项目A 项目B 周报，周五 18:00 截止"
 ```
 
+### `brainstorm-from-issue` (ncgo-code)
+
+获取仓库所有 open issues，按业务领域语义分类，逐分类 brainstorming 并输出独立 spec 文件。支持功能需求和 Bug 两种 Issue 类型。
+
+```
+"从 issue 开始 brainstorming" / "分类分析 open issues"
+```
+
 ## 完整流程
 
 从想法到 PR 合并的每一步，以及涉及的 skill：
@@ -88,6 +96,10 @@ brew install gh && gh auth login
 ~/.claude/skills/ncgo-code/
 ├── LICENSE
 ├── README.md / README.zh-CN.md
+├── brainstorm-from-issue/
+│   ├── SKILL.md
+│   └── scripts/
+│       └── fetch-open-issues.sh
 ├── issue-status/
 │   └── SKILL.md
 ├── weekly-report/
@@ -96,8 +108,9 @@ brew install gh && gh auth login
     ├── SKILL.md
     ├── plan-template.md
     └── scripts/
-        ├── create-issue.sh      # 解析计划 → gh issue create
+        ├── create-issue.sh      # 解析计划 → 创建 Issue
         ├── sync-status.sh       # 更新 Issue 标签
+        ├── finish-issue.sh      # Push + 关闭 Issue + 清理
         ├── link-pr.sh           # 创建 PR + Closes #N
         └── list-issues.sh       # 按状态列出 Issue
 ```

@@ -41,6 +41,14 @@ Scans one or more Git repositories and generates a structured weekly development
 "generate this week's report" / "weekly report for project-a project-b, cut off Friday 18:00"
 ```
 
+### `brainstorm-from-issue` (ncgo-code)
+
+Fetches all open issues in the current repo, classifies them by business domain, and guides brainstorming per category. Each category produces an independent spec file. Supports feature requests and bugs.
+
+```
+"brainstorm from issues" / "classify and analyze open issues"
+```
+
 ## Full Workflow
 
 This is the complete cycle from idea to merged PR, with all skills involved at each step.
@@ -88,6 +96,10 @@ Step 7 — Merge
 ~/.claude/skills/ncgo-code/
 ├── LICENSE
 ├── README.md / README.zh-CN.md
+├── brainstorm-from-issue/
+│   ├── SKILL.md
+│   └── scripts/
+│       └── fetch-open-issues.sh
 ├── issue-status/
 │   └── SKILL.md
 ├── weekly-report/
@@ -96,10 +108,11 @@ Step 7 — Merge
     ├── SKILL.md
     ├── plan-template.md
     └── scripts/
-        ├── create-issue.sh      # Parse plan → gh issue create
-        ├── sync-status.sh       # Update Issue labels
+        ├── create-issue.sh      # Parse plan → create issue
+        ├── sync-status.sh       # Update issue labels
+        ├── finish-issue.sh      # Push + close issue + cleanup
         ├── link-pr.sh           # Create PR + Closes #N
-        └── list-issues.sh       # List Issues by status
+        └── list-issues.sh       # List issues by status
 ```
 
 ## License
