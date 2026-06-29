@@ -1,22 +1,22 @@
 ---
 name: writing-plans-with-issue
-description: 创建包含 GitHub Issue 规划的技术计划/实现方案。当用户需要为新功能、重构或开发任务创建实现计划、写实现方案、制定开发计划、write implementation plan 时使用此技能。它会生成带有 GitHub Issue 集成的完整计划文件 — Issue 创建是计划中的第一个任务，确保在开始编码之前获得 Issue 编号。
+description: 创建包含 Issue 集成的实现计划（支持 GitHub/Gitee/GitLab）。当用户需要为新功能、重构或开发任务创建实现计划、写实现方案、制定开发计划 时使用此技能。它会生成带有 Issue 集成的完整计划文件 — Issue 创建是计划中的第一个任务，确保在开始编码之前获得 Issue 编号。
 ---
 
 # Writing Plans with Issue Integration
 
 ## Overview
 
-在创建技术计划时，将 GitHub Issue 创建和状态同步作为计划的前两个任务，确保在编写任何代码之前就拿到 Issue #N，后续所有 commit 都可以引用它。
+在创建技术计划时，将 Issue 创建和状态同步作为计划的前两个任务，确保在编写任何代码之前就拿到 Issue #N，后续所有 commit 都可以引用它。支持 GitHub / Gitee / GitLab 三平台，通过 Provider 层自动检测。
 
-**Announce at start:** "正在使用 writing-plans-with-issue 创建包含 GitHub Issue 集成的实现计划"
+**Announce at start:** "正在使用 writing-plans-with-issue 创建包含 Issue 集成的实现计划"
 
 **配套 skill：** 
 - `issue-status` — 手动管理 Issue 状态（标记开发中/审查中/完成）
 
 ## Prerequisites（首次运行一次性设置）
 
-> **跨平台兼容：** 脚本兼容 Linux、macOS、Windows（需要 Git Bash 或 WSL）。
+> **跨平台兼容：** 脚本兼容 Linux、macOS、Windows（需要 Git Bash 或 WSL）。支持 GitHub / Gitee / GitLab 三平台。
 
 首次使用前，确认以下三项即可：
 
@@ -28,11 +28,10 @@ ls ~/.claude/skills/superpowers/using-superpowers/ 2>/dev/null || {
   exit 1
 }
 
-# 2. gh CLI 已认证？
-gh auth status &>/dev/null || {
-  echo "⚠️ gh 未认证，运行: gh auth login"
-  exit 1
-}
+# 2. 平台认证（按当前仓库自动检测，或设置 WRITING_PLANS_PLATFORM 手动覆盖）
+#    GitHub: gh auth status
+#    Gitee:  echo $GITEE_TOKEN
+#    GitLab: glab auth status
 
 # 3. 项目目录就绪（静默创建，不报错）
 mkdir -p docs/superpowers/plans .claude/gh-issue
@@ -53,8 +52,8 @@ grep -q '.claude/gh-issue/' .gitignore 2>/dev/null || echo '.claude/gh-issue/' >
 
 | 脚本 | 用途 | 对应阶段 |
 |------|------|---------|
-| `scripts/create-issue.sh` | 从计划文件解析 Issue 信息并创建 GitHub Issue | Task 1 |
-| `scripts/sync-status.sh` | 更新 GitHub Issue 的状态标签 | Task 2 / PR 阶段 |
+| `scripts/create-issue.sh` | 从计划文件解析 Issue 信息并创建 Issue（GitHub/Gitee/GitLab） | Task 1 |
+| `scripts/sync-status.sh` | 更新 Issue 的状态标签 | Task 2 / PR 阶段 |
 | `scripts/link-pr.sh` | 创建 Pull Request 并关联 Issue（Closes #N） | 开发完成后（PR 路径） |
 | `scripts/finish-issue.sh` | 本地合并后收尾：push + 关闭 Issue + 清理 state | 开发完成后（本地合并路径） |
 
@@ -88,15 +87,15 @@ grep -q '.claude/gh-issue/' .gitignore 2>/dev/null || echo '.claude/gh-issue/' >
 [项目级约束条件]
 ```
 
-### 3. GitHub Issue 规划（MANDATORY）
+### 3. Issue 规划（MANDATORY）
 
 定义即将创建的 Issue 的元数据。这些信息将被 `create-issue.sh` 脚本解析。
 
 - **`**Issue 标题:**` 和 `**Issue 标签:**` 必须在同一行**（脚本按行解析）。
-- **标签用逗号分隔，逗号后不要有空格**（gh CLI 要求）。
+- **标签用逗号分隔，逗号后不要有空格**（各平台 CLI/API 统一要求）。
 
 ```markdown
-## GitHub Issue 规划
+## Issue 规划
 
 **Issue 标题:** feat: [功能名称]
 
@@ -124,14 +123,14 @@ grep -q '.claude/gh-issue/' .gitignore 2>/dev/null || echo '.claude/gh-issue/' >
 
 ### 5. Tasks — Issue 相关任务必须排在最前
 
-**硬性规则：Task 1 = 创建 GitHub Issue，Task 2 = 同步状态为 in-progress。** 后续所有开发任务（Task 3+）的 commit message 都需引用 `#N`。
+**硬性规则：Task 1 = 创建 Issue，Task 2 = 同步状态为 in-progress。** 后续所有开发任务（Task 3+）的 commit message 都需引用 `#N`。
 
 ```markdown
 ## Tasks
 
-### Task 1: 创建 GitHub Issue
+### Task 1: 创建 Issue
 
-**Description:** 从 "GitHub Issue 规划" 部分提取信息，创建 Issue 并保存编号到 `.claude/gh-issue/current-issue.txt`。
+**Description:** 从 "Issue 规划" 部分提取信息，创建 Issue 并保存编号到 `.claude/gh-issue/current-issue.txt`。
 
 - [ ] **Step 1: 运行 scripts/create-issue.sh**
 
@@ -143,7 +142,8 @@ bash [base-dir]/scripts/create-issue.sh docs/superpowers/plans/[计划文件名]
 
 ```bash
 cat .claude/gh-issue/current-issue.txt
-gh issue view "$(cat .claude/gh-issue/current-issue.txt)"
+# 在对应平台查看 Issue（GitHub 示例）：
+# gh issue view "$(cat .claude/gh-issue/current-issue.txt)"
 ```
 
 ### Task 2: 同步 Issue 状态为 in-progress
@@ -169,7 +169,7 @@ echo "✅ Issue #$(cat .claude/gh-issue/current-issue.txt) 已标记为 in-progr
 
 **Description:** 开发完成并本地合并到 base 分支后，push 并关闭 Issue。
 
-> **注意：** 如果选择 PR 路径（Option 2），则不需要此任务 — `link-pr.sh` 会在 PR body 中包含 `Closes #N`，PR 合并时 GitHub 自动关闭 Issue。
+> **注意：** 如果选择 PR 路径（Option 2），则不需要此任务 — `link-pr.sh` 会在 PR body 中包含 `Closes #N`，PR 合并时平台自动关闭 Issue。
 
 - [ ] **Step 1: 确保已合并到 base 分支**
 
@@ -192,8 +192,12 @@ bash [base-dir]/scripts/finish-issue.sh
 - [ ] **Step 3: 确认 Issue 已关闭且 checkbox 已打钩**
 
 ```bash
+# GitHub:
 gh issue view "$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo 'already cleaned')"
-```
+# Gitee:
+curl -s "https://gitee.com/api/v5/repos/{owner}/{repo}/issues/$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo '0')"
+# GitLab:
+glab issue view "$(cat .claude/gh-issue/current-issue.txt 2>/dev/null || echo 'already cleaned')" --output json
 ```
 
 > **生成计划时的路径替换：** 上述模板中的 `[base-dir]` 必须替换为本 skill 的 base directory（skill 调用时系统告知，如 `/Users/xxx/.claude/skills/writing-plans-with-issue`）。计划文件由 subagent 执行，需要绝对路径。
@@ -237,7 +241,10 @@ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
 ```
 1. Prerequisites 检查
    ├─ Superpowers 已安装？ → 否 → 提示安装后退出
-   ├─ gh CLI 已认证？     → 否 → 提示安装后退出
+   ├─ 平台认证通过？       → 否 → 提示对应平台认证后退出
+   │   ├─ GitHub: gh auth status
+   │   ├─ Gitee: echo $GITEE_TOKEN
+   │   └─ GitLab: glab auth status
    └─ 项目目录已就绪？
 
 2. 探索需求（可选）
@@ -263,10 +270,10 @@ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
   /subagent-driven-development docs/superpowers/plans/YYYY-MM-DD-feature-name.md
 ```
 
-4. 执行 Task 1: 创建 GitHub Issue
+4. 执行 Task 1: 创建 Issue
    └─ create-issue.sh
-      ├─ 解析 "GitHub Issue 规划" 部分
-      ├─ gh issue create → Issue #N
+      ├─ 解析 "Issue 规划" 部分
+      ├─ provider_create_issue → Issue #N
       ├─ 保存编号到 .claude/gh-issue/current-issue.txt
       └─ 在计划文件顶部注入 <!-- Issue: #N -->
 
@@ -285,7 +292,7 @@ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
    │
    └─ Option 2: 创建 PR
       └─ link-pr.sh → PR (Closes #N) + Issue status: in-review
-         └─ PR 合并 → GitHub 自动关闭 Issue #N ✅
+         └─ PR 合并 → 平台自动关闭 Issue #N ✅
 
 8. （可选）执行回顾
    └─ /code-review → 分析代码问题 + 流程摩擦点
@@ -298,13 +305,13 @@ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
 
 ### 为什么 Task 1 必须是创建 Issue？
 
-1. **Commit 引用**：拿到 Issue #N 后，每个 commit message 可以引用 `(#N)`，GitHub 自动关联
+1. **Commit 引用**：拿到 Issue #N 后，每个 commit message 可以引用 `(#N)`，平台自动关联
 2. **可追踪性**：从第一个 commit 起就被 Issue 追踪，不遗漏任何变更
 3. **不依赖记忆**：作为显式任务而非隐藏步骤，执行者不会跳过
 
 ### 为什么 Issue 标签逗号后不要有空格？
 
-`gh issue create --label "enhancement, go-auth"` → 被解析为 ` go-auth`（前导空格），导致 "label not found"。正确写法是 `enhancement,go-auth`。`create-issue.sh` 已内置 `tr -d ' '` 防御性处理。
+以 GitHub 为例：`gh issue create --label "enhancement, go-auth"` → 被解析为 ` go-auth`（前导空格），导致 "label not found"。Gitee API 和 GitLab `glab` 也有类似问题。正确写法是 `enhancement,go-auth`。`create-issue.sh` 已内置 `tr -d ' '` 防御性处理。
 
 ### 为什么 current-issue.txt 要 gitignore？
 
@@ -324,12 +331,34 @@ ls ~/.claude/skills/superpowers/using-superpowers/
 git clone https://github.com/obra/Superpowers.git ~/.claude/skills/superpowers/
 ```
 
-### gh CLI 未安装或未认证
+### 平台认证失败
 
+**GitHub:**
 ```bash
 brew install gh         # macOS
 gh auth login           # 认证
 gh auth status          # 验证
+```
+
+**Gitee:**
+```bash
+# 1. 安装 jq（API 调用依赖）
+brew install jq              # macOS
+sudo apt install jq          # Debian/Ubuntu
+
+# 2. 在 Gitee 后台生成 Token: https://gitee.com/profile/personal_access_tokens
+#    权限勾选：issues、pulls、labels、repo
+
+# 3. 设置环境变量
+export GITEE_TOKEN="你的token"
+```
+
+**GitLab:**
+```bash
+brew install glab       # macOS
+glab auth login         # GitLab.com
+glab auth login --hostname gitlab.mycorp.com  # 自建实例
+glab auth status        # 验证
 ```
 
 ### Issue 创建失败 — 标签不存在
@@ -340,7 +369,7 @@ gh auth status          # 验证
 ❌ **Issue 标签:** enhancement, go-auth, priority:high
 ```
 
-`create-issue.sh` 会自动创建不存在的标签，但如果标签名本身拼写错误，需手动删除：`gh label delete "错误标签名"`
+`create-issue.sh` 会自动创建不存在的标签，但如果标签名本身拼写错误，需手动在对应平台删除。
 
 ### .claude/gh-issue/current-issue.txt 未找到
 
@@ -359,6 +388,11 @@ rm .claude/gh-issue/current-issue.txt
 
 ## Version History
 
+- v1.3.0 (2026-06-29) — 多平台文档同步
+  - SKILL.md 全面更新：所有 "GitHub Issue" 引用改为平台无关描述
+  - Prerequisites 认证检查覆盖 GitHub / Gitee / GitLab 三平台
+  - Troubleshooting 新增 Gitee（Token + jq）和 GitLab（glab）认证指引
+  - 代码示例补充 Gitee/GitLab 命令对照
 - v1.2.0 (2026-06-26) — 多角色审查 + 质量修复
   - 新增 `_common.sh` 共享库，消除 ~400 行重复代码
   - 统一所有脚本 `set -euo pipefail` + `cd_to_git_root()`
@@ -374,8 +408,8 @@ rm .claude/gh-issue/current-issue.txt
   - 解决 `finishing-a-development-branch` 不感知 Issue 的问题
 - v1.0.0 (2026-06-26) — 初始版本
   - 计划结构：Standard Header + Issue 规划 + File Structure + Tasks
-  - Task 1 = 创建 GitHub Issue，Task 2 = 同步状态为 in-progress
-  - Prerequisites 检查（Superpowers + gh CLI + 项目目录）
+  - Task 1 = 创建 Issue，Task 2 = 同步状态为 in-progress
+  - Prerequisites 检查（Superpowers + 平台认证 + 项目目录）
   - 跨平台脚本（macOS/Linux/Windows Git Bash），含自动安装引导
   - 脚本路径采用 `[base-dir]` 占位符 + 生成时替换模式
   - `create-issue.sh` 含重复创建防护
