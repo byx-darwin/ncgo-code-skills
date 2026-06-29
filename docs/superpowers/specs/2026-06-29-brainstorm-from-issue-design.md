@@ -11,10 +11,16 @@
 ## 文件结构
 
 ```
+# 开发目录（repo 根目录内，git 追踪）
 brainstorm-from-issue/
 ├── SKILL.md                    # skill 指令（核心逻辑）
 └── scripts/
     └── fetch-open-issues.sh    # 获取所有 open issues 并输出 JSON
+```
+
+**安装方式：** 通过 symlink 安装到 `~/.claude/skills/`
+```
+~/.claude/skills/brainstorm-from-issue -> <repo-root>/brainstorm-from-issue
 ```
 
 **关键设计：**
