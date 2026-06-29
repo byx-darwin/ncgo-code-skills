@@ -21,8 +21,9 @@ description: 创建包含 Issue 集成的实现计划（支持 GitHub/Gitee/GitL
 首次使用前，确认以下三项即可：
 
 ```bash
-# 1. Superpowers 已安装？
-ls ~/.claude/skills/superpowers/using-superpowers/ 2>/dev/null || {
+# 1. Superpowers 已安装？（检查两个可能位置：skills 目录 或 plugins 缓存）
+(ls ~/.claude/skills/superpowers/using-superpowers/ 2>/dev/null || \
+ ls ~/.claude/plugins/cache/superpowers-marketplace/superpowers/*/skills/using-superpowers/ 2>/dev/null) >/dev/null 2>&1 || {
   echo "⚠️ Superpowers 未安装，运行:"
   echo "git clone https://github.com/obra/Superpowers.git ~/.claude/skills/superpowers/"
   exit 1
@@ -336,11 +337,15 @@ CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude --dangerously-skip-permissions
 ### Superpowers 未安装
 
 ```bash
-# 检查
-ls ~/.claude/skills/superpowers/using-superpowers/
+# 检查（两个可能位置）
+ls ~/.claude/skills/superpowers/using-superpowers/ 2>/dev/null || \
+ls ~/.claude/plugins/cache/superpowers-marketplace/superpowers/*/skills/using-superpowers/ 2>/dev/null
 
-# 安装：将 superpowers 克隆到 skills 目录
+# 安装方式 1：git clone 到 skills 目录
 git clone https://github.com/obra/Superpowers.git ~/.claude/skills/superpowers/
+
+# 安装方式 2：通过 Superpowers marketplace（推荐）
+# 参考: https://github.com/obra/Superpowers#installation
 ```
 
 ### 平台认证失败
