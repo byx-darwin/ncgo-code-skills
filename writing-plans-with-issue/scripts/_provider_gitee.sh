@@ -116,10 +116,10 @@ provider_create_issue() {
     local gitee_msg; gitee_msg=$(echo "$response" | jq -r '.message // empty' 2>/dev/null)
     if [ "$gitee_msg" = "project or enterprise" ]; then
       cat >&2 <<EOF
-❌ Gitee API rejected issue creation.
+❌ Gitee API rejected issue creation (platform-limit: project or enterprise).
 
-   错误原因: 当前 Token 没有 Issue 写入权限（尽管 scope 已勾选）。
-   Gitee 免费账号的 API 写入可能受限，请联系 Gitee 客服确认。
+   当前 Token 没有 Issue 写入权限（尽管 scope 已勾选）。
+   Gitee 免费账号的 API 写入可能受限，请联系 Gitee 客服。
 
    替代方案: 在 Gitee 网页端手动创建 Issue，再通过 CLI 操作标签和状态。
 EOF
@@ -268,7 +268,7 @@ provider_update_issue_body() {
     "$(jq -n --arg body "$body_text" '{body: $body}')") || {
     local gitee_msg; gitee_msg=$(echo "$response" | jq -r '.message // empty' 2>/dev/null)
     if [ "$gitee_msg" = "project or enterprise" ]; then
-      echo "❌ Gitee API rejected issue update. Token 没有 Issue 写入权限（平台限制，非代码问题）。" >&2
+      echo "❌ Gitee API rejected issue update (platform-limit: project or enterprise). Token 无写入权限。" >&2
     else
       echo "❌ Failed to update Gitee Issue #$issue_num body" >&2
     fi
