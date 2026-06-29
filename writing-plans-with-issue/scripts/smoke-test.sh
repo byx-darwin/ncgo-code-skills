@@ -53,11 +53,9 @@ fi
 source "$SCRIPT_DIR/_provider.sh" > /dev/null 2>&1 || true
 
 # Gitee 默认 readonly（除非显式 --write）
-if [ "$PLATFORM" = "gitee" ] && [ "$READONLY" -eq 0 ] && [ "${SKIP_GITEE_WRITE_CHECK:-0}" != "1" ]; then
-  if [ -z "${GITEE_TOKEN:-}" ]; then
-    echo "🔒 Gitee detected, no GITEE_TOKEN set — enabling --readonly mode"
-    READONLY=1
-  fi
+if [ "$PLATFORM" = "gitee" ] && [ "$READONLY" -eq 0 ]; then
+  echo "🔒 Gitee detected — enabling --readonly mode (use --write to force write tests)"
+  READONLY=1
 fi
 
 # ── 状态追踪 ──
