@@ -51,9 +51,9 @@ provider_create_issue() {
   }
   rm -f "$errfile"
 
-  # Extract URL from output (format: "https://.../-/issues/N")
-  echo "$output" | grep -oE 'https://[^ ]+/-/issues/[0-9]+' | head -1 || \
-    echo "$output" | grep -oE 'https://[^ ]+' | tail -1
+  # Extract URL from output (format: "https://.../-/issues/N" or "http://...")
+  echo "$output" | grep -oE 'https?://[^ ]+/-/issues/[0-9]+' | head -1 || \
+    echo "$output" | grep -oE 'https?://[^ ]+' | tail -1
 }
 
 provider_add_labels() {
