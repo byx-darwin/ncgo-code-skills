@@ -40,7 +40,9 @@ provider_create_issue() {
   [ -n "$labels" ] && args+=(-l "$labels")
   [ -n "$milestone" ] && args+=(-m "$milestone")
 
-  glab issue create "${args[@]}" 2>/tmp/glab_create_err.txt || {
+  # glab issue create outputs the issue URL (contains /-/issues/N)
+  local output
+  output=$(glab issue create "${args[@]}" 2>/tmp/glab_create_err.txt) || {
     local exit_code=$?
     cat /tmp/glab_create_err.txt >&2
     rm -f /tmp/glab_create_err.txt
@@ -48,10 +50,9 @@ provider_create_issue() {
   }
   rm -f /tmp/glab_create_err.txt
 
-  # glab issue create prints the issue URL as the last line
-  # Parse it from output (glab prints web URL)
-  glab issue list --search "$title" --output json 2>/dev/null | \
-    jq -r '.[0].web_url // empty'
+  # Extract URL from output (format: "https://.../-/issues/N")
+  echo "$output" | grep -oE 'https://[^ ]+/-/issues/[0-9]+' | head -1 || \
+    echo "$output" | grep -oE 'https://[^ ]+' | tail -1
 }
 
 provider_add_labels() {
@@ -101,7 +102,12 @@ provider_get_issue_state() {
     return 1
   }
   # GitLab states: opened, closed. Normalize to lowercase.
-  echo "$state" | tr '[:upper:]' '[:lower:]' | sed 's/opened/open/'
+  # Use exact match to avoid partial replacement
+  case "$state" in
+    opened|open) echo "open" ;;
+    closed) echo "closed" ;;
+    *) echo "$state" | tr '[:upper:]' '[:lower:]' ;;
+  esac
 }
 
 provider_get_issue_json() {
@@ -118,11 +124,20 @@ provider_list_issues() {
   local state="$2"
   local limit="${3:-20}"
 
-  # Map state: open→opened, closed→closed
-  local glab_state="$state"
-  [ "$state" = "open" ] && glab_state="opened"
+  # Build args dynamically to avoid passing empty values
+  # glab issue list flags: (none)=opened, -c=closed, -A=all
+  local args=(--per-page "$limit" -O json)
 
-  glab issue list --label "$label" --state "$glab_state" --per-page "$limit" --output json 2>/dev/null | \
+  case "$state" in
+    closed) args+=(-c) ;;
+    all)    args+=(-A) ;;
+    # open/opened/empty = default (opened)
+  esac
+
+  # Only add label filter if non-empty
+  [ -n "$label" ] && args+=(-l "$label")
+
+  glab issue list "${args[@]}" 2>/dev/null | \
     jq '[.[] | {number: (.iid // .number), title: .title, state: .state, url: .web_url}]' || {
     echo "❌ Failed to list GitLab issues"
     return 1
@@ -193,7 +208,7 @@ provider_ensure_label() {
 # ── Repository info ──
 
 provider_repo_name_with_owner() {
-  glab repo view --output json 2>/dev/null | jq -r '.namespace.full_path // empty' || {
+  glab repo view --output json 2>/dev/null | jq -r '.path_with_namespace // empty' || {
     echo "❌ Failed to get GitLab repository info"
     return 1
   }

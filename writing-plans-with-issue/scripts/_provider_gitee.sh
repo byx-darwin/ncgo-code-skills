@@ -11,11 +11,14 @@ _gitee_get_repo() {
   # Parse owner/repo from git remote URL
   local remote_url
   remote_url=$(git remote get-url origin 2>/dev/null || echo "")
-  # Support both HTTPS and SSH formats:
+  # Support both HTTPS and SSH formats (HTTPS may include user:token@ prefix):
+  # https://user:token@gitee.com/owner/repo.git
   # https://gitee.com/owner/repo.git
   # git@gitee.com:owner/repo.git
   if [[ "$remote_url" == *gitee.com* ]]; then
-    echo "$remote_url" | sed -E 's|.*gitee.com[:/]([^/]+/[^/]+?)(\.git)?$|\1|'
+    # 1. Strip .git suffix (if present)
+    # 2. Extract owner/repo after gitee.com separator (/ or :)
+    echo "${remote_url%.git}" | sed -E 's|.*gitee.com[:/](.*)|\1|'
   else
     echo "unknown/unknown"
   fi
@@ -28,7 +31,10 @@ _gitee_api() {
   local path="$2"
   local body="${3:-}"
 
-  local url="${GITEE_API_BASE}${path}?access_token=${GITEE_TOKEN}"
+  # Use ? or & depending on whether path already contains query parameters
+  local sep="?"
+  [[ "$path" == *"?"* ]] && sep="&"
+  local url="${GITEE_API_BASE}${path}${sep}access_token=${GITEE_TOKEN}"
 
   if [ -n "$body" ]; then
     curl -s -X "$method" "$url" \
@@ -223,11 +229,15 @@ provider_list_issues() {
   local repo
   repo=$(_gitee_get_repo)
 
+  # Build query parameters dynamically (skip empty values)
+  local params="per_page=${limit}&sort=updated&direction=desc"
+  [ -n "$label" ] && params="${params}&labels=${label}"
   # Map state: open → open, closed → closed, all → (no filter)
-  local gitee_state="$state"
-  [ "$state" = "all" ] && gitee_state=""
+  if [ -n "$state" ] && [ "$state" != "all" ]; then
+    params="${params}&state=${state}"
+  fi
 
-  _gitee_api GET "/repos/${repo}/issues?labels=${label}&state=${gitee_state}&per_page=${limit}&sort=updated&direction=desc" | \
+  _gitee_api GET "/repos/${repo}/issues?${params}" | \
     jq '[.[] | {number: .number, title: .title, state: .state, url: .html_url}]'
 }
 
