@@ -60,13 +60,107 @@ grep -q '.claude/gh-issue/' .gitignore 2>/dev/null || echo '.claude/gh-issue/' >
 
 ---
 
+## Gitee 写入能力检测（计划生成前必做）
+
+Gitee 免费账号的 API 写入可能受限。**生成计划前，必须先检测当前平台的 Issue 写入能力**，选择对应的计划模板。
+
+### 检测方法
+
+```bash
+# 检测当前平台
+PLATFORM=$(git remote get-url origin 2>/dev/null | grep -q 'gitee.com' && echo "gitee" || echo "other")
+
+# 如果是 Gitee，检测 Issue 创建是否可用
+if [ "$PLATFORM" = "gitee" ]; then
+  if [ -z "${GITEE_TOKEN:-}" ]; then
+    echo "⚠️ GITEE_TOKEN 未设置，将使用简化计划模板（无 Issue 关联）"
+    USE_SIMPLE_TEMPLATE=1
+  else
+    # 快速测试：尝试创建一个小 issue 看返回
+    TEST_RESULT=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+      "https://gitee.com/api/v5/repos/OWNER/REPO/issues" \
+      -H "Authorization: Bearer ${GITEE_TOKEN}" \
+      -H "Content-Type: application/json" \
+      -d '{"title":"test","body":"test"}' 2>/dev/null)
+    if [ "$TEST_RESULT" = "404" ]; then
+      echo "⚠️ Gitee API 写入受限（免费账号限制），将使用简化计划模板"
+      USE_SIMPLE_TEMPLATE=1
+    fi
+  fi
+fi
+```
+
+### 两种计划模板
+
+| 场景 | 模板 | 包含 |
+|------|------|------|
+| GitHub / GitLab / Gitee(有写入) | **完整模板** | Issue 规划 + Task 1(创建) + Task 2(同步) + 开发任务 + 收尾(关闭) |
+| Gitee(写入受限) | **简化模板** | ~~Issue 规划~~ + 直接开发任务（无 Issue 关联） |
+
+### 简化模板（Gitee 写入受限时使用）
+
+```markdown
+<!-- Gitee: Issue 写入受限，使用简化模板 -->
+
+# [Feature Name] Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** [一句话描述目标]
+
+**Architecture:** [2-3 句架构说明]
+
+**Tech Stack:** [关键技术/库]
+
+**平台说明:** Gitee 免费账号 API 写入受限，本计划不包含 Issue 自动创建/关闭步骤。
+
+## Global Constraints
+
+[项目级约束条件]
+
+## File Structure
+
+[文件结构]
+
+## Tasks
+
+### Task 1: [开发任务 1]
+
+**Description:** [描述]
+
+- [ ] **Step 1:** ...
+
+### Task 2: [开发任务 2]
+
+...
+
+> **注意：** Gitee 平台限制，Issue 需在网页端手动创建和管理。
+```
+
+### 流程调整
+
+```
+1. 检测平台 → Gitee + 写入受限？
+   ├─ 否 → 使用完整模板（含 Issue 规划 + Task 1/2 + 收尾）
+   └─ 是 → 使用简化模板（无 Issue 关联）
+        ├─ 计划文件顶部注释 `<!-- Gitee: Issue 写入受限 -->`
+        ├─ 跳过 `## Issue 规划` 章节
+        ├─ 不生成 Task 1(创建 Issue)、Task 2(同步状态)、收尾任务
+        └─ 提示用户: "Gitee 平台限制，请在网页端手动管理 Issue"
+```
+
+---
+
 ## Plan Document Structure
 
 > **⚠️ 硬性约束 — 违反任何一条即视为无效计划：**
 > 1. **必须包含 `## Issue 规划` 章节**（位于 Standard Header 和 File Structure 之间）
+>    - **例外：** Gitee 写入受限时使用简化模板，跳过此章节
 > 2. **Task 1 必须是"创建 Issue"，Task 2 必须是"同步状态为 in-progress"**
-> 3. **Task 3 才能开始第一个开发任务**
+>    - **例外：** Gitee 写入受限时，Task 1 直接开始第一个开发任务
+> 3. **Task 3 才能开始第一个开发任务**（仅限完整模板）
 > 4. 跳过上述任何部分 = 计划无效，必须重新生成
+>    - **例外：** 详见上方「Gitee 写入能力检测」章节
 
 按以下顺序编写计划文件，不可跳过任何部分。
 
