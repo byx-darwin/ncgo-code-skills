@@ -14,7 +14,7 @@
 
 ---
 
-## GitHub Issue 规划
+## Issue 规划
 
 **Issue 标题:** feat: [功能名称]
 
@@ -24,7 +24,7 @@
 - 类型：enhancement（新功能）, bug（修复）, refactor（重构）, docs（文档）, test（测试）
 - 模块：go-common, go-middleware, go-framework, 或具体包名
 - 优先级：priority:high, priority:medium, priority:low
-- 注意：逗号后不要加空格（gh CLI 要求）
+- 注意：逗号后不要加空格（各平台 CLI/API 统一要求）
 -->
 
 **Issue 描述:**
@@ -65,9 +65,9 @@ path/to/module/
 
 > **Task 编号规则（硬性）：Task 1 = 创建 Issue，Task 2 = 同步状态为 in-progress。Task 3+ 为开发任务，最后一个为收尾任务。**
 
-### Task 1: 创建 GitHub Issue
+### Task 1: 创建 Issue
 
-**Description:** 从 "GitHub Issue 规划" 部分提取信息，创建 Issue 并保存编号到 `.claude/gh-issue/current-issue.txt`。
+**Description:** 从 "Issue 规划" 部分提取信息，创建 Issue 并保存编号到 `.claude/gh-issue/current-issue.txt`。
 
 - [ ] **Step 1: 运行 scripts/create-issue.sh**
 
@@ -79,7 +79,10 @@ bash [base-dir]/scripts/create-issue.sh docs/superpowers/plans/[计划文件名]
 
 ```bash
 cat .claude/gh-issue/current-issue.txt
-gh issue view "$(cat .claude/gh-issue/current-issue.txt)"
+# 在对应平台查看 Issue：
+# GitHub: gh issue view "$(cat .claude/gh-issue/current-issue.txt)"
+# Gitee:  curl -s "https://gitee.com/api/v5/repos/{owner}/{repo}/issues/$(cat .claude/gh-issue/current-issue.txt)"
+# GitLab: glab issue view "$(cat .claude/gh-issue/current-issue.txt)" --output json
 ```
 
 ### Task 2: 同步 Issue 状态为 in-progress
@@ -254,7 +257,7 @@ go tool cover -func=coverage.out | grep total
 - [ ] Code review approved
 - [ ] Documentation updated
 - [ ] Coverage > 80%
-- [ ] GitHub Issue updated（验收 checkbox 已打钩，finish-issue.sh 自动同步）
+- [ ] Issue 更新（验收 checkbox 已打钩，finish-issue.sh 自动同步）
 - [ ] PR created with `Closes #N` (PR 路径) 或 finish-issue.sh 已运行（本地合并路径）
 - [ ] Merged to main
 

@@ -61,6 +61,12 @@ grep -q '.claude/gh-issue/' .gitignore 2>/dev/null || echo '.claude/gh-issue/' >
 
 ## Plan Document Structure
 
+> **⚠️ 硬性约束 — 违反任何一条即视为无效计划：**
+> 1. **必须包含 `## Issue 规划` 章节**（位于 Standard Header 和 File Structure 之间）
+> 2. **Task 1 必须是"创建 Issue"，Task 2 必须是"同步状态为 in-progress"**
+> 3. **Task 3 才能开始第一个开发任务**
+> 4. 跳过上述任何部分 = 计划无效，必须重新生成
+
 按以下顺序编写计划文件，不可跳过任何部分。
 
 ### 1. Issue 引用标记（计划文件第一行）
@@ -123,7 +129,13 @@ grep -q '.claude/gh-issue/' .gitignore 2>/dev/null || echo '.claude/gh-issue/' >
 
 ### 5. Tasks — Issue 相关任务必须排在最前
 
-**硬性规则：Task 1 = 创建 Issue，Task 2 = 同步状态为 in-progress。** 后续所有开发任务（Task 3+）的 commit message 都需引用 `#N`。
+> **🚨 硬性规则 — 不可违反：**
+> - Task 1 **必须**是"创建 Issue"（不可用开发任务替代）
+> - Task 2 **必须**是"同步状态为 in-progress"
+> - Task 3 **才能**开始第一个开发任务
+> - 违反此规则 = 计划结构错误，必须重写
+
+后续所有开发任务（Task 3+）的 commit message 都需引用 `#N`。
 
 ```markdown
 ## Tasks
@@ -386,8 +398,35 @@ rm .claude/gh-issue/current-issue.txt
 # 然后执行 Task 1
 ```
 
+---
+
+## 计划输出前自检清单（必须执行）
+
+在输出最终计划文件之前，**必须逐项验证以下清单**。任何一项不通过 = 计划无效，必须修正后再输出。
+
+```
+✅ 自检清单：
+[ ] 1. 计划文件包含 `## Issue 规划` 章节？
+[ ] 2. `## Issue 规划` 中包含 `**Issue 标题:**` 和 `**Issue 标签:**`？
+[ ] 3. 标签格式正确（逗号分隔，无空格）？
+[ ] 4. Task 1 是"创建 Issue"（不是开发任务）？
+[ ] 5. Task 2 是"同步状态为 in-progress"（不是开发任务）？
+[ ] 6. 第一个开发任务从 Task 3 开始？
+[ ] 7. 最后一个 Task 是收尾任务（关闭 Issue 或 PR 关联）？
+[ ] 8. 所有脚本路径已从 `[base-dir]` 替换为实际绝对路径？
+```
+
+**如果任何一项为 ❌，立即修正后再输出计划文件。不要跳过此步骤。**
+
+---
+
 ## Version History
 
+- v1.4.0 (2026-06-29) — Issue 关联强制约束 + 模板同步
+  - SKILL.md 新增"计划输出前自检清单"（8 项验证，防止跳过 Issue 关联部分）
+  - SKILL.md Issue 规划和 Task 1/2 增加醒目警告框（⚠️/🚨 标记）
+  - plan-template.md 全面更新：移除所有 "GitHub" 引用，改为平台无关描述
+  - plan-template.md 验证步骤补充 Gitee/GitLab 命令对照
 - v1.3.0 (2026-06-29) — 多平台文档同步
   - SKILL.md 全面更新：所有 "GitHub Issue" 引用改为平台无关描述
   - Prerequisites 认证检查覆盖 GitHub / Gitee / GitLab 三平台
