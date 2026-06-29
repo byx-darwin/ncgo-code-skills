@@ -110,7 +110,7 @@ test_prerequisites() {
   if [ $rc -eq 0 ]; then
     pass "check_prerequisites"
   elif [ "$READONLY" -eq 1 ]; then
-    echo "  ⚠️  check_prerequisites — failed, continuing in readonly mode"
+    skip "check_prerequisites" "no credentials (readonly mode OK)"
   else
     fail "check_prerequisites" "$output"
     echo ""
