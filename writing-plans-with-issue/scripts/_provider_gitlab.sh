@@ -74,17 +74,14 @@ provider_remove_label() {
 provider_close_issue() {
   local issue_num="$1"
   local comment="${2:-}"
+  # glab issue close does not support -m; add a note first if comment is provided
   if [ -n "$comment" ]; then
-    glab issue close "$issue_num" -m "$comment" || {
-      echo "❌ Failed to close GitLab Issue #$issue_num"
-      return 1
-    }
-  else
-    glab issue close "$issue_num" || {
-      echo "❌ Failed to close GitLab Issue #$issue_num"
-      return 1
-    }
+    glab issue note "$issue_num" -m "$comment" > /dev/null 2>&1 || true
   fi
+  glab issue close "$issue_num" || {
+    echo "❌ Failed to close GitLab Issue #$issue_num"
+    return 1
+  }
 }
 
 provider_get_issue_body() {
