@@ -106,72 +106,23 @@ echo "✅ Issue #$(cat .claude/gh-issue/current-issue.txt) 已标记为 in-progr
 ### Task 3: [Component Name]
 
 **Files:**
-- Create: `exact/path/to/file.go`
-- Modify: `exact/path/to/existing.go:123-145`
-- Test: `exact/path/to/file_test.go`
+- Create: `path/to/file.ext`
+- Modify: `path/to/existing.ext:123-145`
+- Test: `path/to/file_test.ext`
 
 **Interfaces:**
 - Consumes: [what this task uses from earlier tasks — exact signatures]
 - Produces: [what later tasks rely on — exact function names, parameter and return types]
 
 - [ ] **Step 1: Write the failing test**
-
-```go
-// exact/path/to/file_test.go
-package package_test
-
-import (
-    "testing"
-    "github.com/byx-darwin/go-tools/path/to/package"
-    "github.com/stretchr/testify/require"
-)
-
-func TestFunctionName(t *testing.T) {
-    // Arrange
-    input := "test input"
-    
-    // Act
-    result := package.FunctionName(input)
-    
-    // Assert
-    require.Equal(t, "expected", result)
-}
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-```bash
-cd go-common && go test ./path/to/package/... -run TestFunctionName -v
-```
-
-Expected: FAIL — `FunctionName` undefined
-
+- [ ] **Step 2: Run test to verify it fails** (expected: FAIL — function/feature not yet implemented)
 - [ ] **Step 3: Implement minimal code to make test pass**
-
-```go
-// exact/path/to/file.go
-package package
-
-// FunctionName does something useful.
-func FunctionName(input string) string {
-    // Minimal implementation
-    return "expected"
-}
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-```bash
-cd go-common && go test ./path/to/package/... -run TestFunctionName -v
-```
-
-Expected: PASS
-
+- [ ] **Step 4: Run test to verify it passes** (expected: PASS)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add exact/path/to/file.go exact/path/to/file_test.go
-git commit -m "feat(package): add FunctionName"
+git add path/to/file.ext path/to/file_test.ext
+git commit -m "feat(module): add FeatureName (#N)"
 ```
 
 ---
@@ -179,12 +130,12 @@ git commit -m "feat(package): add FunctionName"
 ### Task 4: [Component Name]
 
 **Files:**
-- Create: `exact/path/to/file.go`
-- Create: `exact/path/to/file_test.go`
+- Create: `path/to/file.ext`
+- Create: `path/to/file_test.ext`
 
 **Interfaces:**
-- Consumes: `FunctionName` from Task 1.1
-- Produces: `AnotherFunction`
+- Consumes: `FeatureName` from Task 3
+- Produces: `AnotherFeature`
 
 - [ ] **Step 1: Write the failing test**
 - [ ] **Step 2: Run test to verify it fails**
@@ -228,16 +179,9 @@ fi
 ### Build Verification
 
 ```bash
-# Build all modules
-go build ./go-common/... ./go-middleware/... ./go-framework/...
-
-# Test all modules
-go test ./go-common/... ./go-middleware/... ./go-framework/... -count=1
-
-# Lint
-for m in go-common go-middleware go-framework; do
-  golangci-lint run --timeout=5m ./$m/...
-done
+# Build (language-specific — adjust to project language)
+# Test — run the full test suite
+# Lint — run the linter
 ```
 
 ### Coverage Check
