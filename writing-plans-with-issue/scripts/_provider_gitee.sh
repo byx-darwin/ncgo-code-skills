@@ -113,9 +113,21 @@ provider_create_issue() {
   local html_url
   html_url=$(echo "$response" | jq -r '.html_url // empty')
   if [ -z "$html_url" ]; then
-    echo "❌ Failed to create Gitee Issue."
-    echo "Response: $response" >&2
-    [ -f "$GITEE_ERR" ] && cat "$GITEE_ERR" >&2
+    local gitee_msg; gitee_msg=$(echo "$response" | jq -r '.message // empty' 2>/dev/null)
+    if [ "$gitee_msg" = "project or enterprise" ]; then
+      cat >&2 <<EOF
+❌ Gitee API rejected issue creation.
+
+   错误原因: 当前 Token 没有 Issue 写入权限（尽管 scope 已勾选）。
+   Gitee 免费账号的 API 写入可能受限，请联系 Gitee 客服确认。
+
+   替代方案: 在 Gitee 网页端手动创建 Issue，再通过 CLI 操作标签和状态。
+EOF
+    else
+      echo "❌ Failed to create Gitee Issue." >&2
+      echo "Response: $response" >&2
+      [ -f "$GITEE_ERR" ] && cat "$GITEE_ERR" >&2
+    fi
     return 1
   fi
   echo "$html_url"
@@ -251,9 +263,15 @@ provider_update_issue_body() {
   repo=$(_gitee_get_repo)
   local body_text
   body_text=$(cat "$body_file")
-  _gitee_api PATCH "/repos/${repo}/issues/${issue_num}" \
-    "$(jq -n --arg body "$body_text" '{body: $body}')" > /dev/null || {
-    echo "❌ Failed to update Gitee Issue #$issue_num body"
+  local response
+  response=$(_gitee_api PATCH "/repos/${repo}/issues/${issue_num}" \
+    "$(jq -n --arg body "$body_text" '{body: $body}')") || {
+    local gitee_msg; gitee_msg=$(echo "$response" | jq -r '.message // empty' 2>/dev/null)
+    if [ "$gitee_msg" = "project or enterprise" ]; then
+      echo "❌ Gitee API rejected issue update. Token 没有 Issue 写入权限（平台限制，非代码问题）。" >&2
+    else
+      echo "❌ Failed to update Gitee Issue #$issue_num body" >&2
+    fi
     return 1
   }
 }

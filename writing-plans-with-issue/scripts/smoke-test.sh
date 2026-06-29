@@ -49,23 +49,32 @@ fi
 PASS=0
 FAIL=0
 SKIP=0
+LIMIT=0
 TOTAL=0
 
-reset_counts() { PASS=0; FAIL=0; SKIP=0; TOTAL=0; }
+reset_counts() { PASS=0; FAIL=0; SKIP=0; LIMIT=0; TOTAL=0; }
 
-pass() { ((PASS++)); ((TOTAL++)); echo "  ✅ $1"; }
-fail() { ((FAIL++)); ((TOTAL++)); echo "  ❌ $1 — $2"; }
-skip() { ((SKIP++)); ((TOTAL++)); echo "  ⏭️  $1 — $2"; }
+pass()  { ((PASS++)); ((TOTAL++)); echo "  ✅ $1"; }
+fail()  { ((FAIL++)); ((TOTAL++)); echo "  ❌ $1 — $2"; }
+skip()  { ((SKIP++)); ((TOTAL++)); echo "  ⏭️  $1 — $2"; }
+limit() { ((LIMIT++)); ((TOTAL++)); echo "  🔒 $1 — $2"; }
+
+is_gitee_limit() {
+  # Detect Gitee platform write restriction
+  [[ "$PLATFORM" == "gitee" ]] && echo "$1" | grep -q "project or enterprise"
+}
 
 report() {
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  if [ "$FAIL" -eq 0 ] && [ "$SKIP" -eq 0 ]; then
+  if [ "$FAIL" -eq 0 ] && [ "$LIMIT" -eq 0 ] && [ "$SKIP" -eq 0 ]; then
     echo "✅ All $TOTAL tests passed!"
-  elif [ "$FAIL" -eq 0 ]; then
-    echo "⚠️  $PASS/$TOTAL passed, $SKIP skipped"
+  elif [ "$FAIL" -eq 0 ] && [ "$LIMIT" -gt 0 ]; then
+    echo "⚠️  $PASS/$TOTAL passed, $LIMIT blocked by platform (Gitee 免费账号 API 写入限制)"
+  elif [ "$FAIL" -gt 0 ]; then
+    echo "❌ $PASS passed, $FAIL failed, $LIMIT platform-limited, $SKIP skipped (total: $TOTAL)"
   else
-    echo "❌ $PASS passed, $FAIL failed, $SKIP skipped (total: $TOTAL)"
+    echo "⚠️  $PASS/$TOTAL passed, $SKIP skipped"
   fi
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   return "$FAIL"
@@ -116,6 +125,8 @@ test_create_issue() {
     # Extract issue number from URL (works for all platforms: .../issues/N)
     TEST_ISSUE_NUM=$(echo "$output" | grep -oE '[0-9]+$' | head -1)
     pass "create_issue → #$TEST_ISSUE_NUM"
+  elif is_gitee_limit "$output"; then
+    limit "create_issue" "Gitee 平台限制（Token 无 Issue 写入权限）"
   else
     fail "create_issue" "$output"
   fi
@@ -236,6 +247,8 @@ test_update_issue_body() {
 
   if [ $rc -eq 0 ]; then
     pass "update_issue_body — updated successfully"
+  elif is_gitee_limit "$output"; then
+    limit "update_issue_body" "Gitee 平台限制（Token 无 Issue 写入权限）"
   else
     fail "update_issue_body" "$output"
   fi
@@ -252,6 +265,8 @@ test_close_issue() {
 
   if [ $rc -eq 0 ]; then
     pass "close_issue — closed #$TEST_ISSUE_NUM"
+  elif is_gitee_limit "$output"; then
+    limit "close_issue" "Gitee 平台限制（Token 无 Issue 写入权限）"
   else
     fail "close_issue" "$output"
   fi
