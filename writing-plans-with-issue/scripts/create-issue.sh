@@ -135,18 +135,20 @@ main() {
   echo "$ISSUE_BODY" > "$TEMP_BODY"
 
   # 调用 Provider 创建 Issue
+  local errfile; errfile=$(mktemp)
+  trap 'rm -f "$TEMP_BODY" "$errfile"' EXIT
   set +e
-  ISSUE_URL=$(provider_create_issue "$ISSUE_TITLE" "$TEMP_BODY" "$ISSUE_LABELS" "$MILESTONE" 2>/tmp/gh_create_err.txt)
+  ISSUE_URL=$(provider_create_issue "$ISSUE_TITLE" "$TEMP_BODY" "$ISSUE_LABELS" "$MILESTONE" 2>"$errfile")
   CREATE_EXIT=$?
   set -e
 
   if [ $CREATE_EXIT -ne 0 ]; then
     log_error "Failed to create Issue."
-    cat /tmp/gh_create_err.txt >&2
-    rm -f /tmp/gh_create_err.txt
+    cat "$errfile" >&2
+    rm -f "$errfile"
     exit 1
   fi
-  rm -f /tmp/gh_create_err.txt
+  rm -f "$errfile"
 
   # 提取 Issue 编号
   ISSUE_NUM=$(echo "$ISSUE_URL" | grep -o '[0-9]*$')

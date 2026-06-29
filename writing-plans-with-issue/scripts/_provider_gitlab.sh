@@ -42,13 +42,14 @@ provider_create_issue() {
 
   # glab issue create outputs the issue URL (contains /-/issues/N)
   local output
-  output=$(glab issue create "${args[@]}" 2>/tmp/glab_create_err.txt) || {
+  local errfile; errfile=$(mktemp)
+  output=$(glab issue create "${args[@]}" 2>"$errfile") || {
     local exit_code=$?
-    cat /tmp/glab_create_err.txt >&2
-    rm -f /tmp/glab_create_err.txt
+    cat "$errfile" >&2
+    rm -f "$errfile"
     return $exit_code
   }
-  rm -f /tmp/glab_create_err.txt
+  rm -f "$errfile"
 
   # Extract URL from output (format: "https://.../-/issues/N")
   echo "$output" | grep -oE 'https://[^ ]+/-/issues/[0-9]+' | head -1 || \
@@ -172,13 +173,13 @@ provider_create_pr() {
     -t "$title" \
     -d "$body_text" \
     -s "$head_branch" \
-    -b "$base_branch" 2>/tmp/glab_mr_create_err.txt || {
+    -b "$base_branch" 2>"$errfile" || {
     local exit_code=$?
-    cat /tmp/glab_mr_create_err.txt >&2
-    rm -f /tmp/glab_mr_create_err.txt
+    cat "$errfile" >&2
+    rm -f "$errfile"
     return $exit_code
   }
-  rm -f /tmp/glab_mr_create_err.txt
+  rm -f "$errfile"
 
   # Get the MR URL
   glab mr list --source-branch "$head_branch" --output json 2>/dev/null | \

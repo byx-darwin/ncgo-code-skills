@@ -4,6 +4,9 @@
 # Requires: curl, jq, GITEE_TOKEN environment variable.
 
 GITEE_API_BASE="https://gitee.com/api/v5"
+# Per-process temp file for error output (prevents cross-process races)
+export GITEE_ERR; GITEE_ERR=$(mktemp)
+trap 'rm -f "$GITEE_ERR"' EXIT
 
 # ── Helpers ──
 
@@ -31,17 +34,17 @@ _gitee_api() {
   local path="$2"
   local body="${3:-}"
 
-  # Use Authorization header (not URL query) to prevent token exposure in ps listings
+  # Use global per-process temp file to avoid races
   local url="${GITEE_API_BASE}${path}"
 
   if [ -n "$body" ]; then
     curl -s -X "$method" "$url" \
       -H "Content-Type: application/json" \
       -H "Authorization: Bearer ${GITEE_TOKEN}" \
-      -d "$body" 2>/tmp/gitee_curl_err.txt
+      -d "$body" 2>"$GITEE_ERR"
   else
     curl -s -X "$method" "$url" \
-      -H "Authorization: Bearer ${GITEE_TOKEN}" 2>/tmp/gitee_curl_err.txt
+      -H "Authorization: Bearer ${GITEE_TOKEN}" 2>"$GITEE_ERR"
   fi
 }
 
@@ -112,7 +115,7 @@ provider_create_issue() {
   if [ -z "$html_url" ]; then
     echo "❌ Failed to create Gitee Issue."
     echo "Response: $response" >&2
-    [ -f /tmp/gitee_curl_err.txt ] && cat /tmp/gitee_curl_err.txt >&2
+    [ -f "$GITEE_ERR" ] && cat "$GITEE_ERR" >&2
     return 1
   fi
   echo "$html_url"

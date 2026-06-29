@@ -114,21 +114,22 @@ main() {
     log_info "Creating new PR..."
 
     TEMP_BODY=$(mktemp)
-    trap 'rm -f "$TEMP_BODY"' EXIT
+    local errfile; errfile=$(mktemp)
+    trap 'rm -f "$TEMP_BODY" "$errfile"' EXIT
     echo "$PR_BODY" > "$TEMP_BODY"
 
     set +e
-    PR_URL=$(provider_create_pr "$PR_TITLE" "$TEMP_BODY" "$BASE_BRANCH" 2>/tmp/gh_pr_create_err.txt)
+    PR_URL=$(provider_create_pr "$PR_TITLE" "$TEMP_BODY" "$BASE_BRANCH" 2>"$errfile")
     PR_EXIT=$?
     set -e
 
     if [ $PR_EXIT -ne 0 ]; then
       log_error "Failed to create PR."
-      cat /tmp/gh_pr_create_err.txt >&2
-      rm -f /tmp/gh_pr_create_err.txt
+      cat "$errfile" >&2
+      rm -f "$errfile"
       exit 1
     fi
-    rm -f /tmp/gh_pr_create_err.txt
+    rm -f "$errfile"
 
     log_info "PR created: $PR_URL"
   fi

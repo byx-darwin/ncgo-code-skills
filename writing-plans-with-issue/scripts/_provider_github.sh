@@ -36,13 +36,14 @@ provider_create_issue() {
   [ -n "$labels" ] && args+=(--label "$labels")
   [ -n "$milestone" ] && args+=(--milestone "$milestone")
 
-  gh issue create "${args[@]}" 2>/tmp/gh_create_err.txt || {
+  local errfile; errfile=$(mktemp)
+  gh issue create "${args[@]}" 2>"$errfile" || {
     local exit_code=$?
-    cat /tmp/gh_create_err.txt >&2
-    rm -f /tmp/gh_create_err.txt
+    cat "$errfile" >&2
+    rm -f "$errfile"
     return $exit_code
   }
-  rm -f /tmp/gh_create_err.txt
+  rm -f "$errfile"
 }
 
 provider_add_labels() {
@@ -129,13 +130,14 @@ provider_create_pr() {
   local body_file="$2"
   local base_branch="$3"
 
-  gh pr create --title "$title" --body-file "$body_file" --base "$base_branch" 2>/tmp/gh_pr_create_err.txt || {
+  local errfile; errfile=$(mktemp)
+  gh pr create --title "$title" --body-file "$body_file" --base "$base_branch" 2>"$errfile" || {
     local exit_code=$?
-    cat /tmp/gh_pr_create_err.txt >&2
-    rm -f /tmp/gh_pr_create_err.txt
+    cat "$errfile" >&2
+    rm -f "$errfile"
     return $exit_code
   }
-  rm -f /tmp/gh_pr_create_err.txt
+  rm -f "$errfile"
 }
 
 provider_list_prs() {
