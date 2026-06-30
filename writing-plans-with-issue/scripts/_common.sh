@@ -86,3 +86,58 @@ ensure_status_label() {
   provider_ensure_label "$label" || return 1
   return 0
 }
+
+# ── 错误报告（auto-report-bug 捕获层） ──
+
+report_error() {
+  local script_path="$1"
+  local line_number="$2"
+  local exit_code="$3"
+
+  # 收集上下文
+  local skill_name
+  skill_name=$(basename "$(dirname "$(dirname "$script_path")")")
+  local script_name
+  script_name=$(basename "$script_path")
+  local provider
+  provider=$(provider_name 2>/dev/null || echo "unknown")
+  local timestamp
+  timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  # 生成错误 ID（基于脚本路径 + 行号的 hash）
+  local error_id
+  if command -v md5sum &>/dev/null; then
+    error_id=$(echo "${script_path}:${line_number}" | md5sum | cut -c1-8)
+  elif command -v md5 &>/dev/null; then
+    error_id=$(echo "${script_path}:${line_number}" | md5 | cut -c1-8)
+  else
+    error_id=$(echo "${script_path}:${line_number}" | cksum | cut -c1-8)
+  fi
+
+  # 读取 stderr（从脚本设置的 STDERR_FILE 变量）
+  local stderr_content=""
+  if [ -n "${STDERR_FILE:-}" ] && [ -f "${STDERR_FILE:-}" ]; then
+    stderr_content=$(head -c 2000 "$STDERR_FILE" 2>/dev/null || echo "")
+  fi
+
+  # 写入缓冲文件
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+  [ -z "$repo_root" ] && return 0
+  local cache_dir="$repo_root/.cache/bug-reports"
+  mkdir -p "$cache_dir"
+
+  cat > "$cache_dir/pending.json" <<EOF
+{
+  "id": "$error_id",
+  "skill": "$skill_name",
+  "script": "$script_name",
+  "line": $line_number,
+  "command": "$BASH_COMMAND",
+  "exit_code": $exit_code,
+  "stderr": $(echo "$stderr_content" | jq -Rs . 2>/dev/null || echo "\"\""),
+  "provider": "$provider",
+  "timestamp": "$timestamp"
+}
+EOF
+}
