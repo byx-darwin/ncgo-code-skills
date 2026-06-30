@@ -15,6 +15,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash hooks/sync-readme-check.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bash hooks/auto-smoke-test.sh"
           }
         ]
