@@ -105,6 +105,12 @@ report_error() {
   local error_id
   error_id=$(echo "${script_path}:${line_number}" | md5sum | cut -c1-8)
   
+  # 读取 stderr（从脚本设置的 STDERR_FILE 变量）
+  local stderr_content=""
+  if [ -n "${STDERR_FILE:-}" ] && [ -f "${STDERR_FILE:-}" ]; then
+    stderr_content=$(head -c 2000 "$STDERR_FILE" 2>/dev/null || echo "")
+  fi
+  
   # 写入缓冲文件
   local repo_root
   repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
@@ -119,7 +125,7 @@ report_error() {
   "line": $line_number,
   "command": "$BASH_COMMAND",
   "exit_code": $exit_code,
-  "stderr": "$(cat /tmp/ncgo-stderr-$$ 2>/dev/null || echo "")",
+  "stderr": "$stderr_content",
   "provider": "$provider",
   "timestamp": "$timestamp"
 }
@@ -136,8 +142,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/_common.sh"
 
-# 错误捕获：stderr 重定向到临时文件
-STDERR_FILE=$(mktemp /tmp/ncgo-stderr-XXXXXX)
+# 错误捕获：stderr 捕获到临时文件（report_error 通过 STDERR_FILE 读取）
+# stderr 捕获是 best-effort：脚本可通过 exec 2>"$STDERR_FILE" 重定向，
+# 若不重定向，pending.json 的 stderr 字段为空，不影响核心功能
+export STDERR_FILE=$(mktemp /tmp/ncgo-stderr-XXXXXX)
 trap 'rm -f "$STDERR_FILE"' EXIT
 trap 'report_error "${BASH_SOURCE[0]}" "$LINENO" "$?"' ERR
 
