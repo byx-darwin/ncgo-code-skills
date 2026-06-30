@@ -53,3 +53,9 @@ case "$PLATFORM" in
     exit 1
     ;;
 esac
+
+# ── Utility ──
+
+provider_name() {
+  echo "${PLATFORM:-unknown}"
+}

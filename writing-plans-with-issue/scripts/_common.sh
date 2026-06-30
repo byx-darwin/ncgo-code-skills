@@ -133,7 +133,7 @@ report_error() {
   "skill": "$skill_name",
   "script": "$script_name",
   "line": $line_number,
-  "command": "$BASH_COMMAND",
+  "command": $(echo "$BASH_COMMAND" | jq -Rs . 2>/dev/null || echo "\"\""),
   "exit_code": $exit_code,
   "stderr": $(echo "$stderr_content" | jq -Rs . 2>/dev/null || echo "\"\""),
   "provider": "$provider",
