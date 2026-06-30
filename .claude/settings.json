@@ -6,6 +6,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash hooks/auto-report-bug.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bash hooks/auto-smoke-test.sh"
           }
         ]
