@@ -3,7 +3,12 @@
     "Stop": [
       {
         "matcher": "",
-        "command": "bash hooks/auto-smoke-test.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash hooks/auto-smoke-test.sh"
+          }
+        ]
       }
     ]
   }
