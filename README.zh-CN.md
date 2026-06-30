@@ -52,6 +52,14 @@ git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/nc
 "从 issue 开始 brainstorming" / "分类分析 open issues"
 ```
 
+### `auto-report-bug` (ncgo-code)
+
+自动错误反馈技能。脚本执行出错时，自动捕获错误上下文，生成带 LLM 分析的 GitHub Issue，去重后提交。由 Stop Hook 触发。
+
+```
+（自动触发 — 脚本出错时）
+```
+
 ## 完整流程
 
 从想法到 PR 合并的每一步，以及涉及的 skill：
@@ -99,10 +107,15 @@ git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/nc
 ~/.claude/skills/ncgo-code/
 ├── LICENSE
 ├── README.md / README.zh-CN.md
+├── auto-report-bug/
+│   └── SKILL.md
 ├── brainstorm-from-issue/
 │   ├── SKILL.md
 │   └── scripts/
 │       └── fetch-open-issues.sh
+├── hooks/
+│   ├── auto-report-bug.sh
+│   └── auto-smoke-test.sh
 ├── issue-status/
 │   └── SKILL.md
 ├── weekly-report/
@@ -111,12 +124,14 @@ git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/nc
     ├── SKILL.md
     ├── plan-template.md
     └── scripts/
-        ├── create-issue.sh      # 解析计划 → 创建 Issue
-        ├── sync-status.sh       # 更新 Issue 标签
-        ├── finish-issue.sh      # Push + 关闭 Issue + 清理
-        ├── link-pr.sh           # 创建 PR + Closes #N
-        ├── list-issues.sh       # 按状态列出 Issue
-        └── smoke-test.sh        # 跨平台 Provider 冒烟测试
+        ├── _common.sh             # 共享函数 + report_error()
+        ├── _provider.sh           # 平台抽象层
+        ├── create-issue.sh        # 解析计划 → 创建 Issue
+        ├── sync-status.sh         # 更新 Issue 标签
+        ├── finish-issue.sh        # Push + 关闭 Issue + 清理
+        ├── link-pr.sh             # 创建 PR + Closes #N
+        ├── list-issues.sh         # 按状态列出 Issue
+        └── smoke-test.sh          # 跨平台 Provider 冒烟测试
 ```
 
 ## 测试
