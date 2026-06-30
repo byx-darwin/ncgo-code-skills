@@ -8,6 +8,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_common.sh"
 
+export STDERR_FILE=$(mktemp /tmp/ncgo-stderr-XXXXXX)
+trap 'rm -f "$STDERR_FILE"' EXIT
+trap 'report_error "${BASH_SOURCE[0]}" "$LINENO" "$?"' ERR
+
 main() {
   cd_to_git_root
   check_dependencies

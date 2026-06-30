@@ -391,7 +391,12 @@ git commit -m "feat: wire ERR trap into all scripts for auto-report-bug (#18)"
     "Stop": [
       {
         "matcher": "",
-        "command": "bash hooks/auto-smoke-test.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash hooks/auto-smoke-test.sh"
+          }
+        ]
       }
     ]
   }
@@ -405,11 +410,21 @@ git commit -m "feat: wire ERR trap into all scripts for auto-report-bug (#18)"
     "Stop": [
       {
         "matcher": "",
-        "command": "bash hooks/auto-report-bug.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash hooks/auto-report-bug.sh"
+          }
+        ]
       },
       {
         "matcher": "",
-        "command": "bash hooks/auto-smoke-test.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash hooks/auto-smoke-test.sh"
+          }
+        ]
       }
     ]
   }

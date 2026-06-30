@@ -37,8 +37,12 @@ EOF
   exit 1
 fi
 
-source "$PROVIDER_DIR/_provider.sh"
+source "$PROVIDER_DIR/_common.sh"
 provider_check_prerequisites || exit 1
+
+export STDERR_FILE=$(mktemp /tmp/ncgo-stderr-XXXXXX)
+trap 'rm -f "$STDERR_FILE"' EXIT
+trap 'report_error "${BASH_SOURCE[0]}" "$LINENO" "$?"' ERR
 
 if ! command -v jq &>/dev/null; then
   echo "❌ jq is required. Install: brew install jq (macOS) / sudo apt install jq (Linux)" >&2
@@ -78,7 +82,7 @@ log_progress "共 ${count} 个 open issues，获取详情中..."
 # 策略：逐 issue 调用两个 API 补齐 body + labels
 
 tmpfile=$(mktemp)
-trap 'rm -f "$tmpfile"' EXIT
+trap 'rm -f "$tmpfile" "$STDERR_FILE"' EXIT
 
 echo "[" > "$tmpfile"
 first=true

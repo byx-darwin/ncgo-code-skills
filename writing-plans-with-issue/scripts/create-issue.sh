@@ -8,6 +8,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_common.sh"
 
+export STDERR_FILE=$(mktemp /tmp/ncgo-stderr-XXXXXX)
+trap 'rm -f "$STDERR_FILE"' EXIT
+trap 'report_error "${BASH_SOURCE[0]}" "$LINENO" "$?"' ERR
+
 # ── 参数解析 ──
 
 PLAN_FILE="${1:-}"
@@ -131,12 +135,12 @@ main() {
 
   # 用临时文件存储 body（避免 shell 转义问题）
   TEMP_BODY=$(mktemp)
-  trap 'rm -f "$TEMP_BODY"' EXIT
+  trap 'rm -f "$TEMP_BODY" "$STDERR_FILE"' EXIT
   echo "$ISSUE_BODY" > "$TEMP_BODY"
 
   # 调用 Provider 创建 Issue
   local errfile; errfile=$(mktemp)
-  trap 'rm -f "$TEMP_BODY" "$errfile"' EXIT
+  trap 'rm -f "$TEMP_BODY" "$errfile" "$STDERR_FILE"' EXIT
   set +e
   ISSUE_URL=$(provider_create_issue "$ISSUE_TITLE" "$TEMP_BODY" "$ISSUE_LABELS" "$MILESTONE" 2>"$errfile")
   CREATE_EXIT=$?
