@@ -52,6 +52,14 @@ Fetches all open issues in the current repo, classifies them by business domain,
 "brainstorm from issues" / "classify and analyze open issues"
 ```
 
+### `auto-report-bug` (ncgo-code)
+
+Automatically reports script errors. When a skill script fails, captures error context, generates a GitHub Issue with LLM analysis, and submits it after dedup check. Triggered by Stop Hook.
+
+```
+(automatic — triggered on script error)
+```
+
 ## Full Workflow
 
 This is the complete cycle from idea to merged PR, with all skills involved at each step.
@@ -99,10 +107,15 @@ Step 7 — Merge
 ~/.claude/skills/ncgo-code/
 ├── LICENSE
 ├── README.md / README.zh-CN.md
+├── auto-report-bug/
+│   └── SKILL.md
 ├── brainstorm-from-issue/
 │   ├── SKILL.md
 │   └── scripts/
 │       └── fetch-open-issues.sh
+├── hooks/
+│   ├── auto-report-bug.sh
+│   └── auto-smoke-test.sh
 ├── issue-status/
 │   └── SKILL.md
 ├── weekly-report/
@@ -111,12 +124,14 @@ Step 7 — Merge
     ├── SKILL.md
     ├── plan-template.md
     └── scripts/
-        ├── create-issue.sh      # Parse plan → create issue
-        ├── sync-status.sh       # Update issue labels
-        ├── finish-issue.sh      # Push + close issue + cleanup
-        ├── link-pr.sh           # Create PR + Closes #N
-        ├── list-issues.sh       # List issues by status
-        └── smoke-test.sh        # Cross-platform provider smoke test
+        ├── _common.sh             # Shared functions + report_error()
+        ├── _provider.sh           # Platform abstraction layer
+        ├── create-issue.sh        # Parse plan → create issue
+        ├── sync-status.sh         # Update issue labels
+        ├── finish-issue.sh        # Push + close issue + cleanup
+        ├── link-pr.sh             # Create PR + Closes #N
+        ├── list-issues.sh         # List issues by status
+        └── smoke-test.sh          # Cross-platform provider smoke test
 ```
 
 ## Testing
