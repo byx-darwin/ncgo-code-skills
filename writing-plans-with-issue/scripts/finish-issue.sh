@@ -8,6 +8,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_common.sh"
 
+export STDERR_FILE=$(mktemp /tmp/ncgo-stderr-XXXXXX)
+trap 'rm -f "$STDERR_FILE"' EXIT
+trap 'report_error "${BASH_SOURCE[0]}" "$LINENO" "$?"' ERR
+
 # ── 参数解析 ──
 
 ISSUE_NUM="${1:-}"
@@ -78,7 +82,7 @@ main() {
 
   if [ "$ISSUE_BODY" != "$UPDATED_BODY" -a -n "$UPDATED_BODY" ]; then
     TEMP_BODY=$(mktemp)
-    trap 'rm -f "$TEMP_BODY"' EXIT
+    trap 'rm -f "$TEMP_BODY" "$STDERR_FILE"' EXIT
     printf '%s' "$UPDATED_BODY" > "$TEMP_BODY"
     provider_update_issue_body "$ISSUE_NUM" "$TEMP_BODY"
     log_info "Acceptance criteria checkboxes synced."

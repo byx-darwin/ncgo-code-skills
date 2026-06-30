@@ -8,6 +8,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_common.sh"
 
+export STDERR_FILE=$(mktemp /tmp/ncgo-stderr-XXXXXX)
+trap 'rm -f "$STDERR_FILE"' EXIT
+trap 'report_error "${BASH_SOURCE[0]}" "$LINENO" "$?"' ERR
+
 # ── 参数解析 ──
 
 ISSUE_NUM="${1:-}"
@@ -115,7 +119,7 @@ main() {
 
     TEMP_BODY=$(mktemp)
     local errfile; errfile=$(mktemp)
-    trap 'rm -f "$TEMP_BODY" "$errfile"' EXIT
+    trap 'rm -f "$TEMP_BODY" "$errfile" "$STDERR_FILE"' EXIT
     echo "$PR_BODY" > "$TEMP_BODY"
 
     set +e
