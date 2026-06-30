@@ -60,6 +60,14 @@ git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/nc
 （自动触发 — 脚本出错时）
 ```
 
+### `sync-readme` (ncgo-code)
+
+同步 README 文档与实际目录结构。检测新增/删除的技能或脚本，自动更新中英文 README 文件。
+
+```
+"同步 readme" / "更新 README 目录结构"
+```
+
 ## 完整流程
 
 从想法到 PR 合并的每一步，以及涉及的 skill：
@@ -115,10 +123,13 @@ git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/nc
 │       └── fetch-open-issues.sh
 ├── hooks/
 │   ├── auto-report-bug.sh
-│   └── auto-smoke-test.sh
+│   ├── auto-smoke-test.sh
+│   └── sync-readme-check.sh
 ├── issue-status/
 │   └── SKILL.md
 ├── weekly-report/
+│   └── SKILL.md
+├── sync-readme/
 │   └── SKILL.md
 └── writing-plans-with-issue/
     ├── SKILL.md

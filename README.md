@@ -60,6 +60,14 @@ Automatically reports script errors. When a skill script fails, captures error c
 (automatic — triggered on script error)
 ```
 
+### `sync-readme` (ncgo-code)
+
+Syncs README documentation with actual directory structure. Detects added/removed skills or scripts and updates both English and Chinese README files.
+
+```
+"sync readme" / "update directory structure in README"
+```
+
 ## Full Workflow
 
 This is the complete cycle from idea to merged PR, with all skills involved at each step.
@@ -115,10 +123,13 @@ Step 7 — Merge
 │       └── fetch-open-issues.sh
 ├── hooks/
 │   ├── auto-report-bug.sh
-│   └── auto-smoke-test.sh
+│   ├── auto-smoke-test.sh
+│   └── sync-readme-check.sh
 ├── issue-status/
 │   └── SKILL.md
 ├── weekly-report/
+│   └── SKILL.md
+├── sync-readme/
 │   └── SKILL.md
 └── writing-plans-with-issue/
     ├── SKILL.md
