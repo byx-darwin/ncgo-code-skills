@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # auto-smoke-test.sh — Stop hook: run smoke test if Provider scripts changed
 # Called by Claude Code Stop hook to verify cross-platform compatibility after dev work.
-# Stores hashes in .superpowers/ to avoid redundant runs.
+# Stores hashes in .cache/ to avoid redundant runs.
 
 set -euo pipefail
 
@@ -9,7 +9,7 @@ HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
 [ -z "$REPO_ROOT" ] && exit 0  # not in a git repo
 
-HASH_FILE="$REPO_ROOT/.superpowers/smoke-hashes"
+HASH_FILE="$REPO_ROOT/.cache/smoke-hashes"
 
 # Files to monitor (all Provider scripts)
 PROVIDER_FILES=(

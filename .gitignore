@@ -4,3 +4,6 @@
 *~
 .claude/gh-issue/
 .superpowers/
+.cursor/
+.codegraph/
+.cache/

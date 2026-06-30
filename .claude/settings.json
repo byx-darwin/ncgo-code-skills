@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "bash hooks/auto-smoke-test.sh"
+      }
+    ]
+  }
+}
