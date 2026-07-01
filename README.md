@@ -62,10 +62,18 @@ Automatically reports script errors. When a skill script fails, captures error c
 
 ### `sync-readme` (ncgo-code)
 
-Syncs README documentation with actual directory structure. Detects added/removed skills or scripts and updates both English and Chinese README files.
+Syncs README documentation with actual directory structure. Detects added/removed skills or scripts and updates both English and Chinese README files, plus CLAUDE.md.
 
 ```
 "sync readme" / "update directory structure in README"
+```
+
+### `check-status` (ncgo-code)
+
+Checks the installation status of ncgo-code skills. Verifies symlink, skills completeness, hooks registration, and documentation sync status.
+
+```
+/check-status
 ```
 
 ## Full Workflow
@@ -120,29 +128,35 @@ Step 7 — Merge
 ├── brainstorm-from-issue/
 │   ├── SKILL.md
 │   └── scripts/
-│       └── fetch-open-issues.sh
+│       └── fetch-open-issues.sh        # Fetch open issues for brainstorming
+├── check-status/
+│   ├── SKILL.md
+│   └── scripts/
+│       └── check-status.sh             # Check installation status
 ├── hooks/
 │   ├── auto-report-bug.sh
 │   ├── auto-smoke-test.sh
 │   └── sync-readme-check.sh
 ├── issue-status/
 │   └── SKILL.md
-├── weekly-report/
-│   └── SKILL.md
 ├── sync-readme/
+│   ├── SKILL.md
+│   └── scripts/
+│       └── install.sh                  # Symlink-based installation
+├── weekly-report/
 │   └── SKILL.md
 └── writing-plans-with-issue/
     ├── SKILL.md
     ├── plan-template.md
     └── scripts/
-        ├── _common.sh             # Shared functions + report_error()
-        ├── _provider.sh           # Platform abstraction layer
-        ├── create-issue.sh        # Parse plan → create issue
-        ├── sync-status.sh         # Update issue labels
-        ├── finish-issue.sh        # Push + close issue + cleanup
-        ├── link-pr.sh             # Create PR + Closes #N
-        ├── list-issues.sh         # List issues by status
-        └── smoke-test.sh          # Cross-platform provider smoke test
+        ├── _common.sh                  # Shared functions + report_error()
+        ├── _provider.sh                # Platform abstraction layer
+        ├── create-issue.sh             # Parse plan → create issue
+        ├── sync-status.sh              # Update issue labels
+        ├── finish-issue.sh             # Push + close issue + cleanup
+        ├── link-pr.sh                  # Create PR + Closes #N
+        ├── list-issues.sh              # List issues by status
+        └── smoke-test.sh               # Cross-platform provider smoke test
 ```
 
 ## Testing

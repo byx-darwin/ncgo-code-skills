@@ -62,10 +62,18 @@ git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/nc
 
 ### `sync-readme` (ncgo-code)
 
-同步 README 文档与实际目录结构。检测新增/删除的技能或脚本，自动更新中英文 README 文件。
+同步 README 文档与实际目录结构。检测新增/删除的技能或脚本，自动更新中英文 README 文件和 CLAUDE.md。
 
 ```
 "同步 readme" / "更新 README 目录结构"
+```
+
+### `check-status` (ncgo-code)
+
+检查 ncgo-code 技能集合的安装状态。验证符号链接、skills 完整性、hooks 注册情况和文档同步状态。
+
+```
+/check-status
 ```
 
 ## 完整流程
@@ -120,29 +128,35 @@ git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/nc
 ├── brainstorm-from-issue/
 │   ├── SKILL.md
 │   └── scripts/
-│       └── fetch-open-issues.sh
+│       └── fetch-open-issues.sh        # 获取开放 Issue 用于头脑风暴
+├── check-status/
+│   ├── SKILL.md
+│   └── scripts/
+│       └── check-status.sh             # 检查安装状态
 ├── hooks/
 │   ├── auto-report-bug.sh
 │   ├── auto-smoke-test.sh
 │   └── sync-readme-check.sh
 ├── issue-status/
 │   └── SKILL.md
-├── weekly-report/
-│   └── SKILL.md
 ├── sync-readme/
+│   ├── SKILL.md
+│   └── scripts/
+│       └── install.sh                  # 基于符号链接的安装
+├── weekly-report/
 │   └── SKILL.md
 └── writing-plans-with-issue/
     ├── SKILL.md
     ├── plan-template.md
     └── scripts/
-        ├── _common.sh             # 共享函数 + report_error()
-        ├── _provider.sh           # 平台抽象层
-        ├── create-issue.sh        # 解析计划 → 创建 Issue
-        ├── sync-status.sh         # 更新 Issue 标签
-        ├── finish-issue.sh        # Push + 关闭 Issue + 清理
-        ├── link-pr.sh             # 创建 PR + Closes #N
-        ├── list-issues.sh         # 按状态列出 Issue
-        └── smoke-test.sh          # 跨平台 Provider 冒烟测试
+        ├── _common.sh                  # 共享函数 + report_error()
+        ├── _provider.sh                # 平台抽象层
+        ├── create-issue.sh             # 解析计划 → 创建 Issue
+        ├── sync-status.sh              # 更新 Issue 标签
+        ├── finish-issue.sh             # Push + 关闭 Issue + 清理
+        ├── link-pr.sh                  # 创建 PR + Closes #N
+        ├── list-issues.sh              # 按状态列出 Issue
+        └── smoke-test.sh               # 跨平台 Provider 冒烟测试
 ```
 
 ## 测试
