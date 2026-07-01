@@ -51,7 +51,7 @@ Three Stop hooks run automatically after Claude finishes a response (configured 
 ## Structure
 
 ```
-~/.claude/skills/ncgo-code/
+ncgo-code-skills/
 ├── LICENSE
 ├── README.md / README.zh-CN.md
 ├── auto-report-bug/

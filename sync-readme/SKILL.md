@@ -53,7 +53,7 @@ git commit -m "docs: sync README and CLAUDE.md with actual directory structure"
 ## 目录结构格式
 
 ```
-~/.claude/skills/ncgo-code/
+ncgo-code-skills/
 ├── LICENSE
 ├── README.md / README.zh-CN.md
 ├── <skill-name>/

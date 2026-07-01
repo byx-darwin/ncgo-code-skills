@@ -14,29 +14,17 @@ cd_to_git_root() {
 
 cd_to_git_root
 REPO_ROOT="$(pwd)"
-INSTALL_DIR="$HOME/.claude/skills/ncgo-code"
+SKILLS_DIR="$HOME/.claude/skills"
 
 echo "ncgo-code 状态报告"
 echo "──────────────────"
 
-# 1. 符号链接状态
+# 1. 安装概览
 echo ""
-echo "📍 安装位置:"
-if [ -L "$INSTALL_DIR" ]; then
-    TARGET="$(readlink "$INSTALL_DIR")"
-    if [ "$TARGET" = "$REPO_ROOT" ]; then
-        echo "   $INSTALL_DIR → $REPO_ROOT (符号链接 ✅)"
-    else
-        echo "   $INSTALL_DIR → $TARGET (符号链接，但指向非当前仓库 ⚠️)"
-    fi
-elif [ -d "$INSTALL_DIR" ]; then
-    echo "   $INSTALL_DIR (普通目录，未链接到开发仓库 ⚠️)"
-    echo "   建议运行: bash $REPO_ROOT/sync-readme/scripts/install.sh"
-else
-    echo "   $INSTALL_DIR (不存在 ❌)"
-fi
+echo "📍 开发仓库: ${REPO_ROOT}"
+echo "📍 安装位置: ${SKILLS_DIR}/ (每个 skill 单独符号链接)"
 
-# 2. Skills 完整性
+# 2. Skills 完整性（含符号链接检查）
 echo ""
 echo "Skills:"
 EXPECTED_SKILLS=(
@@ -52,14 +40,26 @@ SKILL_OK=0
 SKILL_TOTAL=${#EXPECTED_SKILLS[@]}
 
 for skill in "${EXPECTED_SKILLS[@]}"; do
-    if [ -f "$skill/SKILL.md" ]; then
-        echo "  ✅ $skill"
+    LINK_PATH="${SKILLS_DIR}/${skill}"
+    if [ -L "${LINK_PATH}" ] && [ -f "${LINK_PATH}/SKILL.md" ]; then
+        # 验证符号链接指向当前仓库
+        RESOLVED="$(cd "${LINK_PATH}" && pwd -P 2>/dev/null || echo "")"
+        if [ "${RESOLVED}" = "${REPO_ROOT}/${skill}" ]; then
+            echo "  ✅ ${skill} (符号链接 → 开发仓库)"
+        else
+            echo "  ⚠️  ${skill} (符号链接指向其他位置: ${RESOLVED})"
+        fi
         SKILL_OK=$((SKILL_OK + 1))
+    elif [ -f "${LINK_PATH}/SKILL.md" ]; then
+        echo "  ⚠️  ${skill} (已安装但非符号链接)"
+        SKILL_OK=$((SKILL_OK + 1))
+    elif [ -d "${LINK_PATH}" ]; then
+        echo "  ❌ ${skill} (目录存在但缺少 SKILL.md)"
     else
-        echo "  ❌ $skill (缺少 SKILL.md)"
+        echo "  ❌ ${skill} (未安装)"
     fi
 done
-echo "  ($SKILL_OK/$SKILL_TOTAL)"
+echo "  (${SKILL_OK}/${SKILL_TOTAL})"
 
 # 3. Hooks 注册状态
 echo ""

@@ -120,7 +120,7 @@ Step 7 — Merge
 ## Structure
 
 ```
-~/.claude/skills/ncgo-code/
+ncgo-code-skills/
 ├── LICENSE
 ├── README.md / README.zh-CN.md
 ├── auto-report-bug/

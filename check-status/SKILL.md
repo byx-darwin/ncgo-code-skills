@@ -38,16 +38,17 @@ bash [base-dir]/scripts/check-status.sh
 ```
 ncgo-code 状态报告
 ──────────────────
-📍 安装位置: ~/.claude/skills/ncgo-code → /path/to/repo (符号链接 ✅)
+📍 开发仓库: /path/to/ncgo-code-skills
+📍 安装位置: ~/.claude/skills/ (每个 skill 单独符号链接)
 
 Skills (8/8 ✅):
-  ✅ auto-report-bug
-  ✅ brainstorm-from-issue
-  ✅ check-status
-  ✅ issue-status
-  ✅ sync-readme
-  ✅ weekly-report
-  ✅ writing-plans-with-issue
+  ✅ auto-report-bug (符号链接 → 开发仓库)
+  ✅ brainstorm-from-issue (符号链接 → 开发仓库)
+  ✅ check-status (符号链接 → 开发仓库)
+  ✅ issue-status (符号链接 → 开发仓库)
+  ✅ sync-readme (符号链接 → 开发仓库)
+  ✅ weekly-report (符号链接 → 开发仓库)
+  ✅ writing-plans-with-issue (符号链接 → 开发仓库)
 
 Hooks (3/3 ✅):
   ✅ auto-report-bug.sh

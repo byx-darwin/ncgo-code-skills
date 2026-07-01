@@ -120,7 +120,7 @@ git clone https://github.com/byx-darwin/ncgo-code-skills.git ~/.claude/skills/nc
 ## 目录结构
 
 ```
-~/.claude/skills/ncgo-code/
+ncgo-code-skills/
 ├── LICENSE
 ├── README.md / README.zh-CN.md
 ├── auto-report-bug/

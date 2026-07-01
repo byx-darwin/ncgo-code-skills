@@ -13,47 +13,88 @@ cd_to_git_root() {
 
 cd_to_git_root
 REPO_ROOT="$(pwd)"
-INSTALL_DIR="$HOME/.claude/skills/ncgo-code"
+SKILLS_DIR="$HOME/.claude/skills"
+
+# 扫描仓库中的 skill 目录（包含 SKILL.md 的顶级目录）
+SKILLS=()
+for dir in */; do
+    [ -f "${dir}SKILL.md" ] && SKILLS+=("${dir%/}")
+done
+
+if [ ${#SKILLS[@]} -eq 0 ]; then
+    echo "❌ 未在仓库中找到任何 skill（缺少 SKILL.md）"
+    exit 1
+fi
 
 echo "🔧 ncgo-code 符号链接安装"
 echo "────────────────────────"
 echo "开发仓库: $REPO_ROOT"
-echo "安装位置: $INSTALL_DIR"
+echo "安装位置: $SKILLS_DIR/"
+echo "Skills: ${SKILLS[*]}"
 echo ""
 
-# 检查当前状态
-if [ -L "$INSTALL_DIR" ]; then
-    CURRENT_TARGET="$(readlink "$INSTALL_DIR")"
-    if [ "$CURRENT_TARGET" = "$REPO_ROOT" ]; then
-        echo "✅ 已安装: $INSTALL_DIR → $REPO_ROOT"
-        exit 0
+# 确保安装目录存在
+mkdir -p "$SKILLS_DIR"
+
+# 1. 移除旧的 ncgo-code 父目录链接（如果存在）
+LEGACY_LINK="$SKILLS_DIR/ncgo-code"
+if [ -L "$LEGACY_LINK" ] || [ -d "$LEGACY_LINK" ]; then
+    if [ -d "$LEGACY_LINK" ] && [ ! -L "$LEGACY_LINK" ]; then
+        echo "📦 发现旧版安装（普通目录），备份到 ${LEGACY_LINK}.bak"
+        mv "$LEGACY_LINK" "${LEGACY_LINK}.bak"
     else
-        echo "⚠️  符号链接指向错误位置: $CURRENT_TARGET"
-        echo "   期望指向: $REPO_ROOT"
-        rm "$INSTALL_DIR"
+        echo "🗑️  移除旧的 ncgo-code 链接"
+        rm "$LEGACY_LINK"
     fi
-elif [ -d "$INSTALL_DIR" ]; then
-    echo "📦 发现已有安装（普通目录），备份到 ${INSTALL_DIR}.bak"
-    mv "$INSTALL_DIR" "${INSTALL_DIR}.bak"
 fi
 
-# 确保父目录存在
-mkdir -p "$(dirname "$INSTALL_DIR")"
+# 2. 为每个 skill 创建单独符号链接
+INSTALLED=0
+for skill in "${SKILLS[@]}"; do
+    LINK_PATH="$SKILLS_DIR/$skill"
 
-# 创建符号链接
-ln -s "$REPO_ROOT" "$INSTALL_DIR"
-echo "✅ 已链接: $INSTALL_DIR → $REPO_ROOT"
+    if [ -L "$LINK_PATH" ]; then
+        CURRENT_TARGET="$(readlink "$LINK_PATH")"
+        EXPECTED_TARGET="$REPO_ROOT/$skill"
+        # 检查链接是否可用（能读到 SKILL.md）
+        if [ -f "$LINK_PATH/SKILL.md" ]; then
+            # 链接有效 — 检查是否指向正确的仓库（用 pwd -P 解析真实路径）
+            RESOLVED="$(cd "$LINK_PATH" && pwd -P 2>/dev/null || echo "")"
+            if [ "${RESOLVED}" = "${REPO_ROOT}/${skill}" ]; then
+                echo "  ✅ ${skill} (已安装)"
+                INSTALLED=$((INSTALLED + 1))
+                continue
+            else
+                echo "  ⚠️  ${skill} 链接指向其他仓库: ${RESOLVED}，重新创建"
+                rm "$LINK_PATH"
+            fi
+        else
+            echo "  ⚠️  ${skill} 链接已失效 (${CURRENT_TARGET})，重新创建"
+            rm "$LINK_PATH"
+        fi
+    elif [ -d "$LINK_PATH" ]; then
+        echo "  📦 $skill 已存在为普通目录，备份到 ${LINK_PATH}.bak"
+        mv "$LINK_PATH" "${LINK_PATH}.bak"
+    fi
 
-# 验证链接有效
-if [ -f "$INSTALL_DIR/README.md" ]; then
-    echo "✅ 链接验证通过"
-else
-    echo "❌ 链接验证失败: 无法读取 $INSTALL_DIR/README.md"
-    exit 1
-fi
+    ln -s "$REPO_ROOT/$skill" "$LINK_PATH"
+    echo "  ✅ $skill → $REPO_ROOT/$skill"
+    INSTALLED=$((INSTALLED + 1))
+done
 
-if [ -d "${INSTALL_DIR}.bak" ]; then
-    echo ""
-    echo "📦 旧版本备份在: ${INSTALL_DIR}.bak"
-    echo "   确认无误后可手动删除: rm -rf ${INSTALL_DIR}.bak"
+echo ""
+echo "✅ 已安装 $INSTALLED 个 skills 到 $SKILLS_DIR/"
+echo ""
+
+# 3. 验证
+FAILED=0
+for skill in "${SKILLS[@]}"; do
+    if [ ! -f "$SKILLS_DIR/$skill/SKILL.md" ]; then
+        echo "❌ 验证失败: $SKILLS_DIR/$skill/SKILL.md 不可读"
+        FAILED=$((FAILED + 1))
+    fi
+done
+
+if [ $FAILED -eq 0 ]; then
+    echo "✅ 全部验证通过"
 fi
