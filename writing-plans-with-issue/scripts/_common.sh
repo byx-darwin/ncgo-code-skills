@@ -87,6 +87,71 @@ ensure_status_label() {
   return 0
 }
 
+# ── 认证缓存（用户级，24h TTL） ──
+
+AUTH_CACHE_DIR="$HOME/.claude/ncgo-code-skills"
+AUTH_CACHE_FILE="$AUTH_CACHE_DIR/auth-cache.json"
+AUTH_CACHE_TTL=86400  # 24 小时
+
+# 检查认证缓存是否有效
+auth_cache_valid() {
+  local platform="$1"
+  [ -f "$AUTH_CACHE_FILE" ] || return 1
+
+  local cached_time
+  cached_time=$(jq -r ".${platform}.verified_at // empty" "$AUTH_CACHE_FILE" 2>/dev/null)
+  [ -n "$cached_time" ] || return 1
+
+  # 解析时间戳为 epoch（兼容 macOS/Linux）
+  local cached_epoch
+  if date -d "$cached_time" +%s &>/dev/null; then
+    cached_epoch=$(date -d "$cached_time" +%s)
+  elif date -jf "%Y-%m-%dT%H:%M:%SZ" "$cached_time" +%s &>/dev/null; then
+    cached_epoch=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$cached_time" +%s)
+  else
+    return 1
+  fi
+
+  local now_epoch
+  now_epoch=$(date +%s)
+  local age=$(( now_epoch - cached_epoch ))
+
+  [ "$age" -lt "$AUTH_CACHE_TTL" ]
+}
+
+# 写入认证缓存
+auth_cache_write() {
+  local platform="$1"
+  local extra_json="${2:-}"  # 额外字段，如 "\"account\": \"byx-darwin\""
+
+  mkdir -p "$AUTH_CACHE_DIR"
+
+  local timestamp
+  timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  # 读取现有缓存或初始化
+  local cache="{}"
+  [ -f "$AUTH_CACHE_FILE" ] && cache=$(cat "$AUTH_CACHE_FILE" 2>/dev/null || echo "{}")
+
+  # 构建平台条目
+  local entry="{\"verified_at\": \"$timestamp\""
+  [ -n "$extra_json" ] && entry="$entry, $extra_json"
+  entry="$entry}"
+
+  # 更新缓存
+  cache=$(echo "$cache" | jq ".${platform} = $entry" 2>/dev/null || echo "{\"$platform\": $entry}")
+  echo "$cache" > "$AUTH_CACHE_FILE"
+}
+
+# 失效认证缓存
+auth_cache_invalidate() {
+  local platform="$1"
+  [ -f "$AUTH_CACHE_FILE" ] || return 0
+  local cache
+  cache=$(jq "del(.${platform})" "$AUTH_CACHE_FILE" 2>/dev/null || echo "{}")
+  echo "$cache" > "$AUTH_CACHE_FILE"
+}
+
 # ── 错误报告（auto-report-bug 捕获层） ──
 
 report_error() {

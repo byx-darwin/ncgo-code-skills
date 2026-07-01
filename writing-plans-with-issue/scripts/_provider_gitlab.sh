@@ -15,6 +15,11 @@ provider_check_prerequisites() {
     exit 1
   fi
 
+  # 检查认证缓存
+  if auth_cache_valid "gitlab" 2>/dev/null; then
+    return 0
+  fi
+
   if ! glab auth status &> /dev/null; then
     echo "❌ GitLab CLI is not authenticated."
     echo ""
@@ -23,6 +28,11 @@ provider_check_prerequisites() {
     echo "  - For self-hosted: glab auth login --hostname your-gitlab.example.com"
     exit 1
   fi
+
+  # 缓存认证结果（记录已配置的主机列表）
+  local hosts
+  hosts=$(glab auth status --show-token 2>/dev/null | grep -oE '^\S+' | jq -R . | jq -s . 2>/dev/null || echo '["unknown"]')
+  auth_cache_write "gitlab" "\"hosts\": $hosts" 2>/dev/null || true
 }
 
 # ── Issue operations ──

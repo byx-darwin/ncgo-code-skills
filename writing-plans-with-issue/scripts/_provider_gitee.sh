@@ -78,6 +78,10 @@ provider_check_prerequisites() {
     echo "Then: export GITEE_TOKEN=your_token"
     exit 1
   fi
+
+  # 缓存认证结果（记录 token 前缀用于识别）
+  local token_prefix="${GITEE_TOKEN:0:6}..."
+  auth_cache_write "gitee" "\"token_prefix\": \"$token_prefix\"" 2>/dev/null || true
 }
 
 # ── Issue operations ──

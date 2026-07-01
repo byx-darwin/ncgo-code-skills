@@ -13,6 +13,11 @@ provider_check_prerequisites() {
     exit 1
   fi
 
+  # 检查认证缓存
+  if auth_cache_valid "github" 2>/dev/null; then
+    return 0
+  fi
+
   if ! gh auth status &> /dev/null; then
     echo "❌ GitHub CLI is not authenticated."
     echo ""
@@ -22,6 +27,11 @@ provider_check_prerequisites() {
     echo "  - Use browser or paste token"
     exit 1
   fi
+
+  # 缓存认证结果
+  local account
+  account=$(gh api user --jq .login 2>/dev/null || echo "unknown")
+  auth_cache_write "github" "\"account\": \"$account\"" 2>/dev/null || true
 }
 
 # ── Issue operations ──
