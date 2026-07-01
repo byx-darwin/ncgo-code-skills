@@ -29,14 +29,17 @@
 采用五层分层架构：捕获层 → 缓冲层 → 检测层 → 处理层 → 通知层。
 
 **验收标准:**
-- [ ] `_common.sh` 包含 `report_error()` 函数
-- [ ] Stop Hook 检测脚本正常工作
-- [ ] `auto-report-bug/SKILL.md` 技能定义完整
-- [ ] 各脚本已接入错误捕获 trap
-- [ ] `.claude/settings.json` 已注册新 Hook
-- [ ] 去重逻辑正确（不重复创建/评论）
-- [ ] 端到端测试通过（模拟错误 → Issue 创建成功）
-- [ ] Hook 本身出错不影响正常流程
+- [x] `_common.sh` 包含 `report_error()` 函数
+- [x] Stop Hook 检测脚本正常工作
+- [x] `auto-report-bug/SKILL.md` 技能定义完整
+- [x] 各脚本已接入错误捕获 trap
+- [x] `.claude/settings.json` 已注册新 Hook
+- [x] 去重逻辑正确（不重复创建/评论）
+- [x] 端到端测试通过（模拟错误 → Hook 检测 → 去重 → 输出摘要）
+- [x] Hook 本身出错不影响正常流程
+- [x] 认证缓存（用户级，24h TTL，所有项目共享）
+- [x] JSON 格式异常自动清理
+- [x] Hook 输出明确的 Claude 指引
 
 **关联:**
 - 计划文件: `docs/superpowers/plans/2026-06-30-auto-report-bug.md`
