@@ -41,6 +41,8 @@ find . -maxdepth 1 -type d ! -name '.' ! -name '.*' ! -name 'docs' | sed 's|^\./
 - 中文 README: `## 目录结构`
 - CLAUDE.md: `## Structure`
 
+如果某个文件缺少对应 section（如 CLAUDE.md 可能没有 `## Structure`），则在文件末尾追加该 section。
+
 **Step 5: 提交更改**
 
 ```bash
